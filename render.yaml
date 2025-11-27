@@ -4,8 +4,8 @@ services:
     env: node
     plan: free
     region: oregon
-    buildCommand: npm install
-    startCommand: node server/index.js
+    buildCommand: npm install && cd server && npm install && cd ..
+    startCommand: cd server && npm start
     envVars:
       - key: NODE_VERSION
         value: 20.11.0
