@@ -1,0 +1,7 @@
+{
+  "name": "Receipt Scanner & Warranty Tracker",
+  "description": "An AI-powered web application to scan receipts, extract purchase details, and track product warranties. Upload a receipt, let Gemini AI parse the data, and keep all your warranties organized and get alerts for upcoming expirations.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
