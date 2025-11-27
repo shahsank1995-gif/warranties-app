@@ -8,10 +8,17 @@ export const fetchWarranties = async (): Promise<WarrantyItem[]> => {
     try {
         const response = await fetch(`${API_URL}/warranties`);
         if (!response.ok) {
-            throw new Error('Failed to fetch warranties');
+            const errorText = await response.text();
+            console.error('API error response:', response.status, errorText);
+            throw new Error(`Failed to fetch warranties: ${response.status} ${response.statusText}`);
+        }
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            console.error('Invalid content type:', contentType);
+            throw new Error('API returned non-JSON response');
         }
         const result = await response.json();
-        return result.data;
+        return result.data || [];
     } catch (error) {
         console.error('Error fetching warranties:', error);
         throw error;
@@ -55,45 +62,89 @@ export const deleteWarranty = async (id: string): Promise<void> => {
 // Authentication APIs
 
 export const registerUser = async (email: string, name: string, password?: string) => {
-    const response = await fetch(`${API_URL}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name, password }),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Registration failed');
-    return data;
+    try {
+        const response = await fetch(`${API_URL}/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, name, password }),
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Registration failed:', response.status, errorText);
+        }
+        
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Registration failed');
+        return data;
+    } catch (error) {
+        console.error('Registration error:', error);
+        throw error;
+    }
 };
 
 export const loginUser = async (email: string, password?: string) => {
-    const response = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Login failed');
-    return data;
+    try {
+        const response = await fetch(`${API_URL}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Login failed:', response.status, errorText);
+        }
+        
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Login failed');
+        return data;
+    } catch (error) {
+        console.error('Login error:', error);
+        throw error;
+    }
 };
 
 export const verifyCode = async (email: string, code: string, name?: string) => {
-    const response = await fetch(`${API_URL}/auth/verify-code`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code, name }),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Verification failed');
-    return data;
+    try {
+        const response = await fetch(`${API_URL}/auth/verify-code`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, code, name }),
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Verification failed:', response.status, errorText);
+        }
+        
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Verification failed');
+        return data;
+    } catch (error) {
+        console.error('Verification error:', error);
+        throw error;
+    }
 };
 
 export const resendCode = async (email: string) => {
-    const response = await fetch(`${API_URL}/auth/resend-code`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Resend failed');
-    return data;
+    try {
+        const response = await fetch(`${API_URL}/auth/resend-code`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Resend code failed:', response.status, errorText);
+        }
+        
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Resend failed');
+        return data;
+    } catch (error) {
+        console.error('Resend code error:', error);
+        throw error;
+    }
 };

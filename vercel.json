@@ -1,9 +1,6 @@
 {
     "buildCommand": "npm run build",
     "outputDirectory": "dist",
-    "env": {
-        "VITE_GOOGLE_GENAI_API_KEY": "@vite_google_genai_api_key"
-    },
     "rewrites": [
         {
             "source": "/api/(.*)",
@@ -16,20 +13,11 @@
     ],
     "headers": [
         {
-            "source": "/:path((?!.*\\.).*)",
+            "source": "/(.*)",
             "headers": [
                 {
                     "key": "Cache-Control",
-                    "value": "public, max-age=3600, must-revalidate"
-                }
-            ]
-        },
-        {
-            "source": "/api/(.*)",
-            "headers": [
-                {
-                    "key": "Cache-Control",
-                    "value": "no-cache, no-store, must-revalidate"
+                    "value": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400"
                 }
             ]
         }
