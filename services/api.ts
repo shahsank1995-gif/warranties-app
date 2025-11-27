@@ -83,21 +83,31 @@ export const registerUser = async (email: string, name: string, password?: strin
 };
 
 export const loginUser = async (email: string, password?: string) => {
+    const url = `${API_URL}/auth/login`;
+    console.log('Attempting login to:', url);
+
     try {
-        const response = await fetch(`${API_URL}/auth/login`, {
+        const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password }),
         });
 
-        const data = await response.json();
+        console.log('Response status:', response.status);
+        const text = await response.text();
+        console.log('Response body preview:', text.substring(0, 200));
 
-        if (!response.ok) {
-            console.error('Login failed:', response.status, data);
-            throw new Error(data.error || 'Login failed');
+        try {
+            const data = JSON.parse(text);
+            if (!response.ok) {
+                console.error('Login failed:', response.status, data);
+                throw new Error(data.error || 'Login failed');
+            }
+            return data;
+        } catch (e) {
+            console.error('JSON Parse Error:', e);
+            throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}...`);
         }
-
-        return data;
     } catch (error) {
         console.error('Login error:', error);
         throw error;
