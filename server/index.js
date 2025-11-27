@@ -23,7 +23,7 @@ app.use(helmet({
 
 // CORS Configuration
 const corsOptions = {
-    origin: NODE_ENV === 'production' 
+    origin: NODE_ENV === 'production'
         ? ['https://warranties-app.vercel.app', 'https://www.warranties-app.vercel.app']
         : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -538,6 +538,32 @@ app.post('/api/download-receipt', async (req, res) => {
     }
 });
 
+// Temporary endpoint to create demo user
+app.get('/api/admin/create-demo-user', async (req, res) => {
+    try {
+        const email = 'demo@repusense.com';
+        const password = 'password123';
+        const name = 'Demo User';
+        const passwordHash = await bcrypt.hash(password, 10);
+        const userId = 'demo-user';
+
+        await new Promise((resolve, reject) => {
+            db.run(
+                'INSERT INTO users (id, email, name, password_hash, email_verified) VALUES (?, ?, ?, ?, 1) ON CONFLICT(id) DO UPDATE SET password_hash = excluded.password_hash',
+                [userId, email, name, passwordHash],
+                (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                }
+            );
+        });
+
+        res.json({ success: true, message: `User ${email} created/updated` });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Start the server
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -549,7 +575,7 @@ app.listen(PORT, () => {
     console.log(`📧 Email: ${process.env.EMAIL_USER ? '✓ Configured' : '✗ Missing'}`);
     console.log(`🗄️  Database: ${process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite'}`);
     console.log(`🔑 Gemini API: ${process.env.VITE_GOOGLE_GENAI_API_KEY ? '✓ Configured' : '✗ Missing'}`);
-    
+
     // Start notification scheduler
     startScheduler();
 });
