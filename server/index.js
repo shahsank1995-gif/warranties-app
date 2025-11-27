@@ -14,16 +14,23 @@ const { createVerificationCode, verifyCode, createOrGetUser, emailExists, cleanu
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Security Middleware
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: NODE_ENV === 'production' ? true : false
+}));
 
 // CORS Configuration
-app.use(cors({
-    origin: process.env.FRONTEND_URL || '*', // Allow all for now, lock down in prod
+const corsOptions = {
+    origin: NODE_ENV === 'production' 
+        ? ['https://warranties-app.vercel.app', 'https://www.warranties-app.vercel.app']
+        : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+};
+app.use(cors(corsOptions));
 
 app.use(express.json({ limit: '50mb' })); // Increase limit for base64 images if needed
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -127,17 +134,19 @@ app.post('/api/auth/register', async (req, res) => {
         const emailResult = await sendVerificationEmail(emailLower, code, name);
 
         if (emailResult.success) {
+            console.log(`✅ [Auth] Signup email sent to ${emailLower}`);
             res.json({
                 success: true,
                 message: 'Verification code sent to your email',
                 email: emailLower
             });
         } else {
-            res.status(500).json({ error: 'Failed to send verification email' });
+            console.error(`❌ [Auth] Failed to send email:`, emailResult.message);
+            res.status(500).json({ error: `Email service error: ${emailResult.message}` });
         }
     } catch (error) {
-        console.error('[Auth] Registration error:', error);
-        res.status(500).json({ error: error.message });
+        console.error('[Auth] Registration error:', error.message);
+        res.status(500).json({ error: `Registration failed: ${error.message}` });
     }
 });
 
@@ -530,9 +539,17 @@ app.post('/api/download-receipt', async (req, res) => {
 });
 
 // Start the server
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString(), env: NODE_ENV });
+});
 
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT} (${NODE_ENV})`);
+    console.log(`📧 Email: ${process.env.EMAIL_USER ? '✓ Configured' : '✗ Missing'}`);
+    console.log(`🗄️  Database: ${process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite'}`);
+    console.log(`🔑 Gemini API: ${process.env.VITE_GOOGLE_GENAI_API_KEY ? '✓ Configured' : '✗ Missing'}`);
+    
     // Start notification scheduler
     startScheduler();
 });

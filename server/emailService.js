@@ -2,11 +2,24 @@ const nodemailer = require('nodemailer');
 
 // Email configuration
 const createTransporter = () => {
+  const emailUser = process.env.EMAIL_USER;
+  const emailPassword = process.env.EMAIL_PASSWORD;
+
+  // Validate email credentials exist
+  if (!emailUser || !emailPassword) {
+    throw new Error('Email credentials not configured. Please set EMAIL_USER and EMAIL_PASSWORD environment variables.');
+  }
+
+  // Warn if using placeholder
+  if (emailPassword.includes('paste-your') || emailPassword.length < 6) {
+    throw new Error('EMAIL_PASSWORD appears to be a placeholder. Please set a valid Gmail App Password.');
+  }
+
   return nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASSWORD
+      user: emailUser,
+      pass: emailPassword
     }
   });
 };
