@@ -547,19 +547,39 @@ app.get('/api/admin/create-demo-user', async (req, res) => {
         const passwordHash = await bcrypt.hash(password, 10);
         const userId = 'demo-user';
 
-        await new Promise((resolve, reject) => {
-            db.run(
-                'INSERT INTO users (id, email, name, password_hash, email_verified) VALUES (?, ?, ?, ?, 1) ON CONFLICT(id) DO UPDATE SET password_hash = excluded.password_hash',
-                [userId, email, name, passwordHash],
-                (err) => {
-                    if (err) reject(err);
-                    else resolve();
-                }
-            );
+        // Check if user exists
+        const existingUser = await new Promise((resolve, reject) => {
+            db.get('SELECT id FROM users WHERE id = ?', [userId], (err, row) => {
+                if (err) reject(err);
+                else resolve(row);
+            });
         });
 
-        res.json({ success: true, message: `User ${email} created/updated` });
+        if (existingUser) {
+            // Update password
+            await new Promise((resolve, reject) => {
+                db.run('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, userId], (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+            res.json({ success: true, message: `User ${email} updated` });
+        } else {
+            // Create user
+            await new Promise((resolve, reject) => {
+                db.run(
+                    'INSERT INTO users (id, email, name, password_hash, email_verified) VALUES (?, ?, ?, ?, 1)',
+                    [userId, email, name, passwordHash],
+                    (err) => {
+                        if (err) reject(err);
+                        else resolve();
+                    }
+                );
+            });
+            res.json({ success: true, message: `User ${email} created` });
+        }
     } catch (error) {
+        console.error('Create user error:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -570,7 +590,12 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString(), env: NODE_ENV });
 });
 
-app.listen(PORT, () => {
+// Root endpoint for default health checks
+app.get('/', (req, res) => {
+    res.send('Warranties API is running');
+});
+
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT} (${NODE_ENV})`);
     console.log(`📧 Email: ${process.env.EMAIL_USER ? '✓ Configured' : '✗ Missing'}`);
     console.log(`🗄️  Database: ${process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite'}`);
