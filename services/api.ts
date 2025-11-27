@@ -1,8 +1,7 @@
 import { WarrantyItem } from '../types';
 
-// For local development, use relative path to use Vite proxy.
-// For mobile/production, this should be the full URL of your backend.
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+// Hardcoded API URL for production deployment
+const API_URL = 'https://warranties-api.onrender.com/api';
 
 export const fetchWarranties = async (): Promise<WarrantyItem[]> => {
     try {
