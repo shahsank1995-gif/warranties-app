@@ -18,7 +18,16 @@ export const fetchWarranties = async (): Promise<WarrantyItem[]> => {
             throw new Error('API returned non-JSON response');
         }
         const result = await response.json();
-        return result.data || [];
+        // Map backend lowercase keys to frontend camelCase keys
+        return (result.data || []).map((item: any) => ({
+            ...item,
+            productName: item.productname || item.productName,
+            purchaseDate: item.purchasedate || item.purchaseDate,
+            warrantyPeriod: item.warrantyperiod || item.warrantyPeriod,
+            expiryDate: item.expirydate || item.expiryDate,
+            receiptImage: item.receiptimage || item.receiptImage,
+            receiptMimeType: item.receiptmimetype || item.receiptMimeType,
+        }));
     } catch (error) {
         console.error('Error fetching warranties:', error);
         throw error;
