@@ -14,6 +14,7 @@ import { ConfirmDuplicateModal } from './components/ConfirmDuplicateModal';
 import { fetchWarranties, createWarranty, deleteWarranty } from './services/api';
 import { AlertSettings } from './components/AlertSettings';
 import { pushNotificationService } from './src/services/pushNotificationService';
+import { Analytics } from '@vercel/analytics/react';
 
 type ModalContent = 'closed' | 'choice' | 'scanner' | 'form' | 'success' | 'confirm_duplicate' | 'alert_settings';
 type ScannerAction = 'camera' | 'upload';
@@ -278,6 +279,7 @@ const App: React.FC = () => {
         </Modal>
 
       </main>
+      <Analytics />
     </div>
   );
 };
