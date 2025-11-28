@@ -547,18 +547,18 @@ app.get('/api/admin/create-demo-user', async (req, res) => {
         const passwordHash = await bcrypt.hash(password, 10);
         const userId = 'demo-user';
 
-        // Check if user exists
+        // Check if user exists BY EMAIL (not ID)
         const existingUser = await new Promise((resolve, reject) => {
-            db.get('SELECT id FROM users WHERE id = ?', [userId], (err, row) => {
+            db.get('SELECT id FROM users WHERE email = ?', [email], (err, row) => {
                 if (err) reject(err);
                 else resolve(row);
             });
         });
 
         if (existingUser) {
-            // Update password
+            // Update password and name
             await new Promise((resolve, reject) => {
-                db.run('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, userId], (err) => {
+                db.run('UPDATE users SET password_hash = ?, name = ? WHERE email = ?', [passwordHash, name, email], (err) => {
                     if (err) reject(err);
                     else resolve();
                 });
