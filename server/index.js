@@ -94,7 +94,7 @@ app.delete('/api/warranties/:id', (req, res) => {
 
 // AUTHENTICATION ENDPOINTS
 
-// Register - collects email, name, password and sends verification code
+// Register - creates user immediately (Instant Signup)
 app.post('/api/auth/register', async (req, res) => {
     const { email, name, password } = req.body;
 
@@ -118,32 +118,40 @@ app.post('/api/auth/register', async (req, res) => {
             return;
         }
 
-        // Generate verification code
-        const code = await createVerificationCode(db, emailLower);
+        // Hash password
+        const passwordHash = await bcrypt.hash(password, 10);
+        const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-        // Temporarily store password in password_temp field
+        // Create user immediately
         await new Promise((resolve, reject) => {
             db.run(
-                'UPDATE verification_codes SET password_temp = ? WHERE email = ? AND code = ?',
-                [password, emailLower, code],
+                'INSERT INTO users (id, email, name, password_hash, email_verified) VALUES (?, ?, ?, ?, 1)',
+                [userId, emailLower, name, passwordHash],
                 (err) => err ? reject(err) : resolve()
             );
         });
 
-        // Send verification email
-        const emailResult = await sendVerificationEmail(emailLower, code, name);
-
-        if (emailResult.success) {
-            console.log(`✅ [Auth] Signup email sent to ${emailLower}`);
-            res.json({
-                success: true,
-                message: 'Verification code sent to your email',
-                email: emailLower
-            });
-        } else {
-            console.error(`❌ [Auth] Failed to send email:`, emailResult.message);
-            res.status(500).json({ error: `Email service error: ${emailResult.message}` });
+        // Try to send welcome email (optional, don't block if fails)
+        try {
+            // We can use sendTestEmail or similar just to say welcome, but for now let's skip to avoid errors
+            // Or we could send a "Welcome" email if we had a template
+        } catch (e) {
+            console.error('Welcome email failed:', e);
         }
+
+        console.log(`✅ [Auth] Instant signup for ${emailLower}`);
+
+        res.json({
+            success: true,
+            message: 'Account created successfully',
+            user: {
+                id: userId,
+                email: emailLower,
+                name: name,
+                email_verified: 1
+            }
+        });
+
     } catch (error) {
         console.error('[Auth] Registration error:', error.message);
         res.status(500).json({ error: `Registration failed: ${error.message}` });

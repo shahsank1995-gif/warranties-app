@@ -26,9 +26,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
     try {
       if (mode === 'signup') {
-        await registerUser(email, name, password);
-        setSuccessMessage('Verification code sent to your email!');
-        setMode('verify');
+        const result = await registerUser(email, name, password);
+
+        // Check if instant signup (user object present)
+        if (result.user) {
+          localStorage.setItem('userEmail', result.user.email);
+          localStorage.setItem('userName', result.user.name || '');
+          onLogin();
+        } else {
+          // Fallback for verification flow
+          setSuccessMessage('Verification code sent to your email!');
+          setMode('verify');
+        }
       } else {
         const result = await loginUser(email, password);
         localStorage.setItem('userEmail', result.user.email);
@@ -137,8 +146,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               type="button"
               onClick={() => { setMode('login'); setError(''); }}
               className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all ${mode === 'login'
-                  ? 'bg-brand-purple text-white'
-                  : 'bg-charcoal-gray text-muted-silver hover:bg-charcoal-gray/80'
+                ? 'bg-brand-purple text-white'
+                : 'bg-charcoal-gray text-muted-silver hover:bg-charcoal-gray/80'
                 }`}
             >
               Login
@@ -147,8 +156,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               type="button"
               onClick={() => { setMode('signup'); setError(''); }}
               className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all ${mode === 'signup'
-                  ? 'bg-brand-purple text-white'
-                  : 'bg-charcoal-gray text-muted-silver hover:bg-charcoal-gray/80'
+                ? 'bg-brand-purple text-white'
+                : 'bg-charcoal-gray text-muted-silver hover:bg-charcoal-gray/80'
                 }`}
             >
               Sign Up
