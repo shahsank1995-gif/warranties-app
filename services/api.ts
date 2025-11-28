@@ -27,20 +27,34 @@ export const fetchWarranties = async (): Promise<WarrantyItem[]> => {
 
 export const createWarranty = async (warranty: WarrantyItem): Promise<WarrantyItem> => {
     try {
+        // Wake up backend first to handle cold starts
+        await wakeUpBackend();
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+
         const response = await fetch(`${API_URL}/warranties`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(warranty),
+            signal: controller.signal
         });
+
+        clearTimeout(timeoutId);
+
         if (!response.ok) {
-            throw new Error('Failed to create warranty');
+            const errorText = await response.text();
+            throw new Error(`Failed to create warranty: ${response.status} ${errorText}`);
         }
         const result = await response.json();
         return result.data;
     } catch (error) {
         console.error('Error creating warranty:', error);
+        if (error instanceof Error && error.name === 'AbortError') {
+            throw new Error('Request timed out. The server might be starting up. Please try again.');
+        }
         throw error;
     }
 };
