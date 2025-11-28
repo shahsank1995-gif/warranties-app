@@ -72,6 +72,9 @@ const App: React.FC = () => {
 
   const handleLogout = useCallback(() => {
     setIsAuthenticated(false);
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userName');
   }, []);
 
   const expiringWarranties = useMemo((): ExpiringWarranty[] => {

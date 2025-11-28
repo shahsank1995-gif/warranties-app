@@ -32,6 +32,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         if (result.user) {
           localStorage.setItem('userEmail', result.user.email);
           localStorage.setItem('userName', result.user.name || '');
+          localStorage.setItem('userId', result.user.id);
           onLogin();
         } else {
           // Fallback for verification flow
@@ -42,6 +43,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         const result = await loginUser(email, password);
         localStorage.setItem('userEmail', result.user.email);
         localStorage.setItem('userName', result.user.name || '');
+        localStorage.setItem('userId', result.user.id);
         onLogin();
       }
     } catch (err: any) {
@@ -87,6 +89,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       const result = await verifyCode(email, codeString, name);
       localStorage.setItem('userEmail', result.user.email);
       localStorage.setItem('userName', result.user.name || '');
+      localStorage.setItem('userId', result.user.id);
       onLogin();
     } catch (err: any) {
       setError(err.message || 'Invalid verification code');

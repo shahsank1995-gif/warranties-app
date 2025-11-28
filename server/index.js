@@ -40,10 +40,16 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 
-// GET all warranties
+// GET all warranties (scoped to user)
 app.get('/api/warranties', (req, res) => {
-    const sql = 'SELECT * FROM warranties ORDER BY purchaseDate DESC';
-    db.all(sql, [], (err, rows) => {
+    const userId = req.headers['x-user-id'];
+
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized: User ID required' });
+    }
+
+    const sql = 'SELECT * FROM warranties WHERE user_id = ? ORDER BY purchaseDate DESC';
+    db.all(sql, [userId], (err, rows) => {
         if (err) {
             res.status(400).json({ error: err.message });
             return;
@@ -55,12 +61,17 @@ app.get('/api/warranties', (req, res) => {
     });
 });
 
-// POST new warranty
+// POST new warranty (scoped to user)
 app.post('/api/warranties', (req, res) => {
+    const userId = req.headers['x-user-id'];
     const { id, productName, purchaseDate, warrantyPeriod, retailer, expiryDate, receiptImage, receiptMimeType } = req.body;
 
-    const sql = `INSERT INTO warranties (id, productName, purchaseDate, warrantyPeriod, retailer, expiryDate, receiptImage, receiptMimeType) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-    const params = [id, productName, purchaseDate, warrantyPeriod, retailer, expiryDate, receiptImage, receiptMimeType];
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized: User ID required' });
+    }
+
+    const sql = `INSERT INTO warranties (id, user_id, productName, purchaseDate, warrantyPeriod, retailer, expiryDate, receiptImage, receiptMimeType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    const params = [id, userId, productName, purchaseDate, warrantyPeriod, retailer, expiryDate, receiptImage, receiptMimeType];
 
     db.run(sql, params, function (err) {
         if (err) {
@@ -69,25 +80,47 @@ app.post('/api/warranties', (req, res) => {
         }
         res.json({
             message: 'success',
-            data: req.body,
+            data: { ...req.body, user_id: userId },
             id: this.lastID
         });
     });
 });
 
-// DELETE warranty
+// DELETE warranty (scoped to user)
 app.delete('/api/warranties/:id', (req, res) => {
-    const sql = 'DELETE FROM warranties WHERE id = ?';
-    const params = [req.params.id];
+    const userId = req.headers['x-user-id'];
 
-    db.run(sql, params, function (err) {
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized: User ID required' });
+    }
+
+    // First check if warranty belongs to user
+    db.get('SELECT user_id FROM warranties WHERE id = ?', [req.params.id], (err, row) => {
         if (err) {
-            res.status(400).json({ error: err.message });
-            return;
+            return res.status(400).json({ error: err.message });
         }
-        res.json({
-            message: 'deleted',
-            changes: this.changes
+
+        if (!row) {
+            return res.status(404).json({ error: 'Warranty not found' });
+        }
+
+        if (row.user_id && row.user_id !== userId) {
+            return res.status(403).json({ error: 'Forbidden: You do not own this warranty' });
+        }
+
+        // Proceed with deletion
+        const sql = 'DELETE FROM warranties WHERE id = ?';
+        const params = [req.params.id];
+
+        db.run(sql, params, function (err) {
+            if (err) {
+                res.status(400).json({ error: err.message });
+                return;
+            }
+            res.json({
+                message: 'deleted',
+                changes: this.changes
+            });
         });
     });
 });

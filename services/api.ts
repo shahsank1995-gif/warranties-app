@@ -4,9 +4,20 @@ import { WarrantyItem } from '../types';
 // Hardcoded API URL for production deployment
 export const API_URL = 'https://warranties-api.onrender.com/api';
 
+// Helper to get auth headers
+const getHeaders = () => {
+    const userId = localStorage.getItem('userId');
+    return {
+        'Content-Type': 'application/json',
+        ...(userId ? { 'x-user-id': userId } : {})
+    };
+};
+
 export const fetchWarranties = async (): Promise<WarrantyItem[]> => {
     try {
-        const response = await fetch(`${API_URL}/warranties`);
+        const response = await fetch(`${API_URL}/warranties`, {
+            headers: getHeaders()
+        });
         if (!response.ok) {
             const errorText = await response.text();
             console.error('API error response:', response.status, errorText);
@@ -44,9 +55,7 @@ export const createWarranty = async (warranty: WarrantyItem): Promise<WarrantyIt
 
         const response = await fetch(`${API_URL}/warranties`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getHeaders(),
             body: JSON.stringify(warranty),
             signal: controller.signal
         });
@@ -72,6 +81,7 @@ export const deleteWarranty = async (id: string): Promise<void> => {
     try {
         const response = await fetch(`${API_URL}/warranties/${id}`, {
             method: 'DELETE',
+            headers: getHeaders()
         });
         if (!response.ok) {
             throw new Error('Failed to delete warranty');

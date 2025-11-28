@@ -107,6 +107,7 @@ class DatabaseAdapter {
             // Warranties Table
             `CREATE TABLE IF NOT EXISTS warranties (
                 id TEXT PRIMARY KEY,
+                user_id TEXT,
                 productName TEXT NOT NULL,
                 purchaseDate TEXT NOT NULL,
                 warrantyPeriod TEXT NOT NULL,
@@ -114,7 +115,8 @@ class DatabaseAdapter {
                 expiryDate TEXT,
                 receiptImage TEXT,
                 receiptMimeType TEXT,
-                createdAt ${dateType} DEFAULT ${now}
+                createdAt ${dateType} DEFAULT ${now},
+                FOREIGN KEY (user_id) REFERENCES users (id)
             )`,
 
             // Users Table
