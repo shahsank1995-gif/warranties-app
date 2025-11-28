@@ -584,6 +584,34 @@ app.get('/api/admin/create-demo-user', async (req, res) => {
     }
 });
 
+// Debug endpoint to check if user exists
+app.get('/api/admin/check-demo-user', async (req, res) => {
+    try {
+        const user = await new Promise((resolve, reject) => {
+            db.get('SELECT id, email, name, password_hash FROM users WHERE email = ?', ['demo@repusense.com'], (err, row) => {
+                if (err) reject(err);
+                else resolve(row);
+            });
+        });
+
+        if (user) {
+            res.json({
+                exists: true,
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    name: user.name,
+                    has_password: !!user.password_hash
+                }
+            });
+        } else {
+            res.json({ exists: false });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Start the server
 // Health check endpoint
 app.get('/api/health', (req, res) => {
