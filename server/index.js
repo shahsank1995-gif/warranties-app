@@ -121,10 +121,10 @@ app.post('/api/auth/register', async (req, res) => {
         // Generate verification code
         const code = await createVerificationCode(db, emailLower);
 
-        // Temporarily store password in verification_codes.used field
+        // Temporarily store password in password_temp field
         await new Promise((resolve, reject) => {
             db.run(
-                'UPDATE verification_codes SET used = ? WHERE email = ? AND code = ?',
+                'UPDATE verification_codes SET password_temp = ? WHERE email = ? AND code = ?',
                 [password, emailLower, code],
                 (err) => err ? reject(err) : resolve()
             );
@@ -236,8 +236,8 @@ app.post('/api/auth/verify-code', async (req, res) => {
             return;
         }
 
-        // Hash password (stored temporarily in 'used' field)
-        const passwordPlainText = verificationRecord.used;
+        // Hash password (stored temporarily in 'password_temp' field)
+        const passwordPlainText = verificationRecord.password_temp;
         const passwordHash = await bcrypt.hash(passwordPlainText, 10);
 
         // Create user with password

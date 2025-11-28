@@ -156,6 +156,7 @@ class DatabaseAdapter {
                 code TEXT NOT NULL,
                 expires_at ${dateType} NOT NULL,
                 used INTEGER DEFAULT 0,
+                password_temp TEXT,
                 created_at ${dateType} DEFAULT ${now}
             )`
         ];
