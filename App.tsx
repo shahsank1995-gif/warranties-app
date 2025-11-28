@@ -25,6 +25,7 @@ const App: React.FC = () => {
   });
   const [warranties, setWarranties] = useState<WarrantyItem[]>([]);
   const [isScanning, setIsScanning] = useState(false);
+  const [isSavingWarranty, setIsSavingWarranty] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAlertsVisible, setIsAlertsVisible] = useState(true);
@@ -133,6 +134,8 @@ const App: React.FC = () => {
   }, []);
 
   const handleSaveWarranty = useCallback(async (item: WarrantyItem) => {
+    if (isSavingWarranty) return; // Prevent multiple saves
+
     const isDuplicate = warranties.some(w => {
       // Check for exact image match
       if (item.receiptImage && w.receiptImage) {
@@ -158,6 +161,7 @@ const App: React.FC = () => {
       setPendingWarranty(item);
       setModalContent('confirm_duplicate');
     } else {
+      setIsSavingWarranty(true);
       try {
         const newItem = await createWarranty({ ...item, id: Date.now().toString() });
         setWarranties(prev => [newItem, ...prev]);
@@ -168,9 +172,11 @@ const App: React.FC = () => {
       } catch (e) {
         console.error("Failed to save warranty", e);
         setError("Could not save warranty.");
+      } finally {
+        setIsSavingWarranty(false);
       }
     }
-  }, [warranties]);
+  }, [warranties, isSavingWarranty]);
 
   const handleConfirmDuplicateSave = useCallback(async () => {
     if (!pendingWarranty) return;
@@ -226,6 +232,7 @@ const App: React.FC = () => {
             initialData={extractedData}
             onSave={handleSaveWarranty}
             onCancel={handleCloseModal}
+            isSaving={isSavingWarranty}
           />
         }
         return null;

@@ -9,11 +9,12 @@ interface WarrantyFormProps {
   initialData: ExtractedData;
   onSave: (item: WarrantyItem) => void;
   onCancel: () => void;
+  isSaving?: boolean;
 }
 
 const AUTOSAVE_KEY = 'autosavedWarrantyForm';
 
-export const WarrantyForm: React.FC<WarrantyFormProps> = ({ initialData, onSave, onCancel }) => {
+export const WarrantyForm: React.FC<WarrantyFormProps> = ({ initialData, onSave, onCancel, isSaving = false }) => {
   const [formData, setFormData] = useState<WarrantyItem>({
     ...initialData,
     id: initialData.productName ? Date.now().toString() : ''
@@ -280,9 +281,10 @@ export const WarrantyForm: React.FC<WarrantyFormProps> = ({ initialData, onSave,
           </button>
           <button
             type="submit"
-            className="px-6 py-2.5 text-sm font-semibold clay-button"
+            disabled={isSaving}
+            className="px-6 py-2.5 text-sm font-semibold clay-button disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Save Warranty
+            {isSaving ? 'Saving...' : 'Save Warranty'}
           </button>
         </div>
       </form>
