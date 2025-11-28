@@ -82,12 +82,58 @@ export const registerUser = async (email: string, name: string, password?: strin
     }
 };
 
+// Helper function to wake up backend (fixes Render cold starts)
+const wakeUpBackend = async (): Promise<boolean> => {
+    try {
+        console.log('🔄 Waking up backend...');
+        const response = await fetch(`${API_URL}/health`, {
+            method: 'GET',
+            signal: AbortSignal.timeout(30000) // 30 second timeout
+        });
+        const healthy = response.ok;
+        console.log(healthy ? '✅ Backend is awake' : '⚠️ Backend health check failed');
+        return healthy;
+    } catch (error) {
+        console.warn('⏳ Backend is starting up...', error);
+        return false;
+    }
+};
+
+// Helper function to retry fetch with exponential backoff
+const fetchWithRetry = async (url: string, options: RequestInit, maxRetries = 3): Promise<Response> => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`Attempt ${attempt}/${maxRetries} to ${url}`);
+            const response = await fetch(url, {
+                ...options,
+                signal: AbortSignal.timeout(attempt === 1 ? 10000 : 30000) // First try: 10s, retries: 30s
+            });
+            return response;
+        } catch (error: any) {
+            const isLastAttempt = attempt === maxRetries;
+
+            if (isLastAttempt) {
+                throw new Error('Backend is not responding. Please try again in a minute.');
+            }
+
+            // Exponential backoff: 2s, 4s
+            const delay = Math.pow(2, attempt) * 1000;
+            console.log(`Request failed, retrying in ${delay / 1000}s...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+    throw new Error('Max retries reached');
+};
+
 export const loginUser = async (email: string, password?: string) => {
     const url = `${API_URL}/auth/login`;
     console.log('Attempting login to:', url);
 
     try {
-        const response = await fetch(url, {
+        // Wake up backend first (helps with Render cold starts)
+        await wakeUpBackend();
+
+        const response = await fetchWithRetry(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password }),
