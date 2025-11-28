@@ -18,7 +18,7 @@ services:
       - key: EMAIL_PASSWORD
         sync: false
       - key: VITE_GOOGLE_GENAI_API_KEY
-        sync: false
+        value: AIzaSyByO7txWsL2aAX80HjWBehR3OJjZlh0GYM
       - key: FRONTEND_URL
         value: https://warranties-app.vercel.app
       - key: FIREBASE_SERVER_KEY
