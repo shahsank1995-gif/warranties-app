@@ -615,7 +615,7 @@ app.get('/', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    // Email credentials updated: 2025-11-28
+    // Email credentials updated: 2025-11-28 (Fix Timeout)
     console.log(`🚀 Server running on port ${PORT} (${NODE_ENV})`);
     console.log(`📧 Email: ${process.env.EMAIL_USER ? '✓ Configured' : '✗ Missing'}`);
     console.log(`🗄️  Database: ${process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite'}`);
