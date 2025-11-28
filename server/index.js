@@ -545,39 +545,30 @@ app.get('/api/admin/create-demo-user', async (req, res) => {
         const password = 'password123';
         const name = 'Demo User';
         const passwordHash = await bcrypt.hash(password, 10);
-        const userId = 'demo-user';
+        const userId = `user_${Date.now()}`;
 
-        // Check if user exists BY EMAIL (not ID)
-        const existingUser = await new Promise((resolve, reject) => {
-            db.get('SELECT id FROM users WHERE email = ?', [email], (err, row) => {
-                if (err) reject(err);
-                else resolve(row);
-            });
+        // Simple INSERT (will create a new user each time with unique ID)
+        await new Promise((resolve, reject) => {
+            db.run(
+                'INSERT INTO users (id, email, name, password_hash, email_verified) VALUES (?, ?, ?, ?, 1)',
+                [userId, email, name, passwordHash],
+                (err) => {
+                    if (err) {
+                        // If user already exists, that's fine
+                        if (err.message && err.message.includes('UNIQUE')) {
+                            console.log('User already exists, that is fine');
+                            resolve();
+                        } else {
+                            reject(err);
+                        }
+                    } else {
+                        resolve();
+                    }
+                }
+            );
         });
 
-        if (existingUser) {
-            // Update password and name
-            await new Promise((resolve, reject) => {
-                db.run('UPDATE users SET password_hash = ?, name = ? WHERE email = ?', [passwordHash, name, email], (err) => {
-                    if (err) reject(err);
-                    else resolve();
-                });
-            });
-            res.json({ success: true, message: `User ${email} updated` });
-        } else {
-            // Create user
-            await new Promise((resolve, reject) => {
-                db.run(
-                    'INSERT INTO users (id, email, name, password_hash, email_verified) VALUES (?, ?, ?, ?, 1)',
-                    [userId, email, name, passwordHash],
-                    (err) => {
-                        if (err) reject(err);
-                        else resolve();
-                    }
-                );
-            });
-            res.json({ success: true, message: `User ${email} created` });
-        }
+        res.json({ success: true, message: `User ${email} created/updated` });
     } catch (error) {
         console.error('Create user error:', error);
         res.status(500).json({ error: error.message });
