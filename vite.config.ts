@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   const isProduction = mode === 'production';
-  
+
   return {
     server: {
       port: 5173,
@@ -30,7 +30,8 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       target: 'ES2020',
-      minify: 'terser'
+      minify: 'terser',
+      chunkSizeWarningLimit: 1000
     }
   };
 });
