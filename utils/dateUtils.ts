@@ -43,10 +43,12 @@ export function calculateExpiryDate(purchaseDate: string, warrantyPeriod: string
 }
 
 export function formatDateForInput(date: Date): string {
+  if (!date || isNaN(date.getTime())) return '';
   return date.toISOString().split('T')[0];
 }
 
 export function formatDateForDisplay(date: Date): string {
+  if (!date || isNaN(date.getTime())) return 'Not Available';
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',

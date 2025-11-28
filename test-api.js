@@ -1,34 +1,37 @@
-// Using built-in fetch
+// No need to import fetch in Node.js v18+
 
-async function testApi() {
-    const API_URL = 'http://localhost:3000/api/warranties';
+async function testLogin() {
+    console.log('Testing Login API...');
+    const url = 'https://warranties-api.onrender.com/api/auth/login';
+    const body = {
+        email: 'demo@repusense.com',
+        password: 'password123'
+    };
 
-    console.log('Testing POST...');
     try {
-        const postRes = await fetch(API_URL, {
+        const response = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                id: 'test-123',
-                productName: 'Node Test Product',
-                purchaseDate: '2023-10-27',
-                warrantyPeriod: '1 year'
-            })
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
         });
-        const postData = await postRes.json();
-        console.log('POST Response:', postData);
-    } catch (e) {
-        console.error('POST Failed:', e);
-    }
 
-    console.log('Testing GET...');
-    try {
-        const getRes = await fetch(API_URL);
-        const getData = await getRes.json();
-        console.log('GET Response:', getData);
-    } catch (e) {
-        console.error('GET Failed:', e);
+        console.log(`Status: ${response.status}`);
+        const contentType = response.headers.get('content-type');
+        console.log(`Content-Type: ${contentType}`);
+
+        if (contentType && contentType.includes('application/json')) {
+            const data = await response.json();
+            console.log('Response Data:', JSON.stringify(data, null, 2));
+        } else {
+            const text = await response.text();
+            console.log('Response Text (First 500 chars):', text.substring(0, 500));
+        }
+
+    } catch (error) {
+        console.error('Error:', error.message);
     }
 }
 
-testApi();
+testLogin();

@@ -1,7 +1,8 @@
 import { WarrantyItem } from '../types';
 
 // Hardcoded API URL for production deployment
-const API_URL = 'https://warranties-api.onrender.com/api';
+// Hardcoded API URL for production deployment
+export const API_URL = 'https://warranties-api.onrender.com/api';
 
 export const fetchWarranties = async (): Promise<WarrantyItem[]> => {
     try {

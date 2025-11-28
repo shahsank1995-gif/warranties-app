@@ -134,11 +134,24 @@ const App: React.FC = () => {
 
   const handleSaveWarranty = useCallback(async (item: WarrantyItem) => {
     const isDuplicate = warranties.some(w => {
-      if (item.receiptImage && w.receiptImage && item.receiptImage === w.receiptImage) {
+      // Check for exact image match
+      if (item.receiptImage && w.receiptImage) {
+        if (item.receiptImage === w.receiptImage) {
+          console.log('Duplicate found by image match');
+          return true;
+        }
+      }
+
+      // Check for name and date match
+      const nameMatch = w.productName.trim().toLowerCase() === item.productName.trim().toLowerCase();
+      const dateMatch = w.purchaseDate === item.purchaseDate;
+
+      if (nameMatch && dateMatch) {
+        console.log('Duplicate found by name and date match');
         return true;
       }
-      return w.productName.trim().toLowerCase() === item.productName.trim().toLowerCase() &&
-        w.purchaseDate === item.purchaseDate;
+
+      return false;
     });
 
     if (isDuplicate) {

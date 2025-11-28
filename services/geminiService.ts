@@ -68,8 +68,15 @@ export async function extractReceiptData(
     const data = JSON.parse(cleanedText);
 
     // Basic validation
-    if (!data.productName || !data.purchaseDate || !data.warrantyPeriod) {
+    if (!data.productName || !data.warrantyPeriod) {
       throw new Error("AI failed to extract required fields.");
+    }
+
+    // Validate date format
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (data.purchaseDate && !dateRegex.test(data.purchaseDate)) {
+      console.warn("AI returned invalid date format:", data.purchaseDate);
+      data.purchaseDate = ""; // Reset to empty if invalid
     }
 
     return data as ExtractedData;

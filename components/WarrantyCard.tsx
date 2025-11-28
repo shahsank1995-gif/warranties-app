@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { WarrantyItem } from '../types';
 import { calculateWarrantyStatus, formatDateForDisplay } from '../utils/dateUtils';
+import { API_URL } from '../services/api';
 import { CalendarIcon } from './icons/CalendarIcon';
 import { ShieldCheckIcon } from './icons/ShieldCheckIcon';
 import { StoreIcon } from './icons/StoreIcon';
@@ -60,7 +61,7 @@ export const WarrantyCard: React.FC<WarrantyCardProps> = ({ item, onDelete, styl
       const filename = `warranty_${sanitizedProductName}.${extension}`;
 
       // Send to server for proper download headers
-      const response = await fetch('http://localhost:3000/api/download-receipt', {
+      const response = await fetch(`${API_URL}/download-receipt`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
