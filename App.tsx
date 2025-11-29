@@ -52,12 +52,18 @@ const App: React.FC = () => {
 
   useEffect(() => {
     localStorage.setItem('isAuthenticated', String(isAuthenticated));
-    if (isAuthenticated) {
+    const userId = localStorage.getItem('userId');
+
+    if (isAuthenticated && userId) {
       loadWarranties();
       // Initialize push notifications on login
       pushNotificationService.initialize().catch(err => {
         console.error('Failed to initialize push notifications:', err);
       });
+    } else if (isAuthenticated && !userId) {
+      // Authenticated but no userId - force logout for safety
+      console.warn('Authenticated but no userId, forcing logout');
+      handleLogout();
     } else {
       setWarranties([]);
     }
