@@ -48,7 +48,7 @@ app.get('/api/warranties', (req, res) => {
         return res.status(401).json({ error: 'Unauthorized: User ID required' });
     }
 
-    const sql = 'SELECT * FROM warranties WHERE user_id = ? ORDER BY purchaseDate DESC';
+    const sql = 'SELECT * FROM warranties WHERE user_id = ? OR user_id IS NULL ORDER BY purchaseDate DESC';
     db.all(sql, [userId], (err, rows) => {
         if (err) {
             res.status(400).json({ error: err.message });
