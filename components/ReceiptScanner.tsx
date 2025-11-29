@@ -118,31 +118,50 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
     }
     console.log('[ReceiptScanner] Dispatching STARTING_CAMERA');
     dispatch({ type: 'STARTING_CAMERA' });
+
+    // Try back camera first (mobile), fallback to any camera (desktop)
     try {
-      console.log('[ReceiptScanner] Requesting back camera access...');
-      // Only request back camera (environment)
+      console.log('[ReceiptScanner] Trying back camera (environment)...');
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { exact: 'environment' } }
+        video: { facingMode: 'environment' }
       });
-      console.log('[ReceiptScanner] Camera access granted, mediaStream:', mediaStream);
+      console.log('[ReceiptScanner] Back camera access granted');
       if (isMountedRef.current && videoRef.current) {
         videoRef.current.srcObject = mediaStream;
         streamRef.current = mediaStream;
         console.log('[ReceiptScanner] Dispatching CAMERA_STARTED');
         dispatch({ type: 'CAMERA_STARTED' });
+        return;
       } else {
-        console.log('[ReceiptScanner] Component unmounted or videoRef missing, stopping stream');
+        console.log('[ReceiptScanner] Component unmounted, stopping stream');
         mediaStream.getTracks().forEach(track => track.stop());
       }
     } catch (err) {
-      if (!isMountedRef.current) return;
-      console.error("[ReceiptScanner] Camera error:", err);
-      streamRef.current = null;
-      let message = 'Could not access the back camera. Please check browser permissions.';
-      if (err instanceof Error && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
-        message = 'Camera permission was denied. Please enable it in your browser settings to continue.';
+      console.log('[ReceiptScanner] Back camera not available, trying any camera...');
+      try {
+        // Fallback to any available camera (for desktop/laptop)
+        const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        console.log('[ReceiptScanner] Camera access granted');
+        if (isMountedRef.current && videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+          streamRef.current = mediaStream;
+          console.log('[ReceiptScanner] Dispatching CAMERA_STARTED');
+          dispatch({ type: 'CAMERA_STARTED' });
+          return;
+        } else {
+          console.log('[ReceiptScanner] Component unmounted, stopping stream');
+          mediaStream.getTracks().forEach(track => track.stop());
+        }
+      } catch (fallbackErr) {
+        if (!isMountedRef.current) return;
+        console.error("[ReceiptScanner] All camera attempts failed:", fallbackErr);
+        streamRef.current = null;
+        let message = 'Could not access the camera. Please check browser permissions.';
+        if (fallbackErr instanceof Error && (fallbackErr.name === 'NotAllowedError' || fallbackErr.name === 'PermissionDeniedError')) {
+          message = 'Camera permission was denied. Please enable it in your browser settings.';
+        }
+        dispatch({ type: 'CAMERA_DENIED', message });
       }
-      dispatch({ type: 'CAMERA_DENIED', message });
     }
   }, [stopCamera]);
 
