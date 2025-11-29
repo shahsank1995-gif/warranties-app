@@ -366,9 +366,25 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
             </div>
           );
         }
+        // For camera mode, show manual start button (mobile browsers often need user interaction)
         return (
-          <div className="mt-8 flex justify-center items-center aspect-video bg-charcoal-black rounded-2xl">
-            <Spinner />
+          <div className="mt-8">
+            <div className="relative w-full aspect-video bg-deep-graphite rounded-2xl overflow-hidden border border-white/5 flex items-center justify-center">
+              <div className="text-center p-8">
+                <CameraIcon className="w-16 h-16 mx-auto text-muted-silver mb-4" />
+                <p className="text-off-white font-semibold mb-2">Camera Ready</p>
+                <p className="text-sm text-muted-silver mb-6">
+                  {state.scanMode === 'qr' ? 'Tap to start QR code scanner' : 'Tap to activate your camera'}
+                </p>
+                <button
+                  onClick={startCamera}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 font-semibold clay-button"
+                >
+                  <CameraIcon className="w-5 h-5" />
+                  <span>Start Camera</span>
+                </button>
+              </div>
+            </div>
           </div>
         );
       case 'denied':
