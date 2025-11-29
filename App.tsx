@@ -14,6 +14,7 @@ import { ConfirmDuplicateModal } from './components/ConfirmDuplicateModal';
 import { fetchWarranties, createWarranty, deleteWarranty } from './services/api';
 import { AlertSettings } from './components/AlertSettings';
 import { pushNotificationService } from './src/services/pushNotificationService';
+import { SplashScreen } from './components/SplashScreen';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 
@@ -21,6 +22,7 @@ type ModalContent = 'closed' | 'choice' | 'scanner' | 'form' | 'success' | 'conf
 type ScannerAction = 'camera' | 'upload';
 
 const App: React.FC = () => {
+  const [showSplash, setShowSplash] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     const auth = localStorage.getItem('isAuthenticated') === 'true';
     const userId = localStorage.getItem('userId');
@@ -280,14 +282,19 @@ const App: React.FC = () => {
     }
   }
 
+  if (showSplash) {
+    return <SplashScreen onFinish={() => setShowSplash(false)} />;
+  }
+
   if (!isAuthenticated) {
     return <LoginPage onLogin={handleLogin} />;
   }
 
   return (
-    <div className="bg-charcoal-black min-h-screen text-off-white">
+    <div className="min-h-screen bg-charcoal-black text-off-white font-sans selection:bg-brand-purple selection:text-white pb-20 md:pb-0">
       <Header onAddClick={handleOpenModal} onLogout={handleLogout} />
-      <main className="container mx-auto p-6 md:p-8 animate-fade-in-stagger">
+
+      <main className="container mx-auto px-4 md:px-8 py-8 space-y-8 animate-fade-in-stagger">
         {error && (
           <div className="bg-alert-red/10 border border-alert-red/30 text-red-300 px-4 py-3 rounded-xl relative mb-6" role="alert">
             <strong className="font-bold">Error: </strong>
