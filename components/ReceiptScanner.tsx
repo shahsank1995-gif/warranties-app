@@ -476,7 +476,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
         </p>
       </div>
 
-      {!isScanning && state.isBarcodeDetectorSupported && (
+      {!isScanning && state.isBarcodeDetectorSupported && initialAction === 'camera' && (
         <div className="mt-8 flex justify-center p-1.5 bg-deep-graphite rounded-xl max-w-xs mx-auto">
           <button
             onClick={() => handleModeChange('receipt')}
