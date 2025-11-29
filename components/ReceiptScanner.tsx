@@ -118,29 +118,41 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
     }
     console.log('[ReceiptScanner] Dispatching STARTING_CAMERA');
     dispatch({ type: 'STARTING_CAMERA' });
-    try {
-      console.log('[ReceiptScanner] Requesting camera access...');
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      console.log('[ReceiptScanner] Camera access granted, mediaStream:', mediaStream);
-      if (isMountedRef.current && videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        streamRef.current = mediaStream;
-        console.log('[ReceiptScanner] Dispatching CAMERA_STARTED');
-        dispatch({ type: 'CAMERA_STARTED' });
-      } else {
-        console.log('[ReceiptScanner] Component unmounted or videoRef missing, stopping stream');
-        mediaStream.getTracks().forEach(track => track.stop());
+
+    // Try back camera first (environment), then any camera as fallback
+    const constraints = [
+      { video: { facingMode: 'environment' } }, // Back camera (preferred)
+      { video: { facingMode: 'user' } },        // Front camera
+      { video: true }                            // Any camera
+    ];
+
+    for (const constraint of constraints) {
+      try {
+        console.log('[ReceiptScanner] Trying camera with constraint:', constraint);
+        const mediaStream = await navigator.mediaDevices.getUserMedia(constraint);
+        console.log('[ReceiptScanner] Camera access granted, mediaStream:', mediaStream);
+        if (isMountedRef.current && videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+          streamRef.current = mediaStream;
+          console.log('[ReceiptScanner] Dispatching CAMERA_STARTED');
+          dispatch({ type: 'CAMERA_STARTED' });
+          return; // Success! Exit the function
+        } else {
+          console.log('[ReceiptScanner] Component unmounted or videoRef missing, stopping stream');
+          mediaStream.getTracks().forEach(track => track.stop());
+        }
+      } catch (err) {
+        console.error('[ReceiptScanner] Camera error with constraint', constraint, ':', err);
+        // Continue to next constraint
       }
-    } catch (err) {
-      if (!isMountedRef.current) return;
-      console.error("[ReceiptScanner] Camera error:", err);
-      streamRef.current = null;
-      let message = 'Could not access the camera. Please check browser permissions.';
-      if (err instanceof Error && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
-        message = 'Camera permission was denied. Please enable it in your browser settings to continue.';
-      }
-      dispatch({ type: 'CAMERA_DENIED', message });
     }
+
+    // All attempts failed
+    if (!isMountedRef.current) return;
+    console.error("[ReceiptScanner] All camera access attempts failed");
+    streamRef.current = null;
+    let message = 'Could not access the camera. Please check browser permissions.';
+    dispatch({ type: 'CAMERA_DENIED', message });
   }, [stopCamera]);
 
   useEffect(() => {
