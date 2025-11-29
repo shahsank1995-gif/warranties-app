@@ -21,7 +21,18 @@ type ScannerAction = 'camera' | 'upload';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('isAuthenticated') === 'true';
+    const auth = localStorage.getItem('isAuthenticated') === 'true';
+    const userId = localStorage.getItem('userId');
+
+    // Auto-logout if authenticated but missing userId (old session)
+    if (auth && !userId) {
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userName');
+      return false;
+    }
+
+    return auth;
   });
   const [warranties, setWarranties] = useState<WarrantyItem[]>([]);
   const [isScanning, setIsScanning] = useState(false);
