@@ -15,6 +15,7 @@ import { fetchWarranties, createWarranty, deleteWarranty } from './services/api'
 import { AlertSettings } from './components/AlertSettings';
 import { pushNotificationService } from './src/services/pushNotificationService';
 import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 type ModalContent = 'closed' | 'choice' | 'scanner' | 'form' | 'success' | 'confirm_duplicate' | 'alert_settings';
 type ScannerAction = 'camera' | 'upload';
@@ -320,6 +321,7 @@ const App: React.FC = () => {
 
       </main>
       <Analytics />
+      <SpeedInsights />
     </div>
   );
 };
