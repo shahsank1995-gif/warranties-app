@@ -145,14 +145,15 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
 
   useEffect(() => {
     console.log('[ReceiptScanner] Camera effect running', { initialAction, scanMode: state.scanMode, status: state.status });
-    // Start camera for camera mode (receipt scanning) or QR mode
-    // Don't start camera if initialAction is 'upload' and scanMode is 'receipt'
+    // Start camera for:
+    // 1. Camera mode (initialAction = 'camera') when scanMode is 'receipt'
+    // 2. QR Code mode (scanMode = 'qr') regardless of initialAction
     const shouldStartCamera =
       (initialAction === 'camera' && state.scanMode === 'receipt') ||
       state.scanMode === 'qr';
 
     console.log('[ReceiptScanner] Should start camera?', shouldStartCamera);
-    if (shouldStartCamera) {
+    if (shouldStartCamera && state.status === 'initializing') {
       console.log('[ReceiptScanner] Waiting for videoRef to be ready...');
       // Add delay to ensure video element is rendered and ref is attached
       const timer = setTimeout(() => {
@@ -165,7 +166,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
       };
     }
     return () => stopCamera();
-  }, [state.scanMode, startCamera, stopCamera, initialAction]);
+  }, [state.scanMode, state.status, startCamera, stopCamera, initialAction]);
 
 
   const parseAndValidateQrCode = useCallback((qrData: string): ExtractedData | null => {
