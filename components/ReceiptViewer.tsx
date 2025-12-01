@@ -1,5 +1,4 @@
 import React from 'react';
-import jsPDF from 'jspdf';
 
 interface ReceiptViewerProps {
     imageUrl: string;
@@ -21,7 +20,15 @@ export const ReceiptViewer: React.FC<ReceiptViewerProps> = ({ imageUrl, productN
                 link.click();
                 document.body.removeChild(link);
             } else {
-                // Generate PDF from image
+                // Dynamically import jsPDF to avoid build-time issues
+                const jsPDFModule = await import('jspdf');
+                // Handle both named and default exports for compatibility
+                const jsPDF = jsPDFModule.jsPDF || jsPDFModule.default;
+
+                if (!jsPDF) {
+                    throw new Error('Failed to load PDF generator');
+                }
+
                 const doc = new jsPDF();
                 const img = new Image();
                 img.crossOrigin = "Anonymous";
