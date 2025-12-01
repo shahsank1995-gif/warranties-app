@@ -18,6 +18,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
+// Trust proxy (Required for Render/Heroku/Vercel)
+app.set('trust proxy', 1);
+
 // Security Middleware
 // Security Middleware
 app.use(helmet({
