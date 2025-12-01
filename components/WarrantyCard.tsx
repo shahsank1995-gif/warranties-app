@@ -57,11 +57,15 @@ export const WarrantyCard: React.FC<WarrantyCardProps> = ({ item, onDelete, styl
       };
 
       const extension = extensionMap[item.receiptMimeType] || 'png';
-      const sanitizedProductName = item.productName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-      const filename = `warranty_${sanitizedProductName}.${extension}`;
+
+      // Create descriptive filename: Receipt-ProductName-Retailer-Date.ext
+      const sanitizedProduct = item.productName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+      const sanitizedRetailer = item.retailer ? item.retailer.replace(/[^a-z0-9]/gi, '-').toLowerCase() : 'store';
+      const dateStr = item.purchaseDate.replace(/-/g, '');  // 20241125
+      const filename = `Receipt-${sanitizedProduct}-${sanitizedRetailer}-${dateStr}.${extension}`;
 
       // Send to server for proper download headers
-      const response = await fetch(`${API_URL}/download-receipt`, {
+      const response = await fetch(`${API_URL}/api/download-receipt`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
