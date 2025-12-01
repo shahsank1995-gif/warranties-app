@@ -48,6 +48,20 @@ export const ReceiptViewer: React.FC<ReceiptViewerProps> = ({ imageUrl, productN
                         />
                     )}
                 </div>
+
+                {/* Footer with Download Button */}
+                <div className="bg-onyx-gray px-6 py-4 border-t border-white/10 flex justify-end gap-3 flex-shrink-0">
+                    <a
+                        href={imageUrl}
+                        download={`${productName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_receipt${isPdf ? '.pdf' : '.png'}`}
+                        className="px-6 py-2 bg-brand-purple hover:bg-brand-purple/80 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Download
+                    </a>
+                </div>
             </div>
         </div>
     );
