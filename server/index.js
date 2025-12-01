@@ -62,28 +62,59 @@ app.get('/api/warranties', (req, res) => {
 });
 
 // POST new warranty (scoped to user)
-app.post('/api/warranties', (req, res) => {
-    const userId = req.headers['x-user-id'];
-    const { id, productName, purchaseDate, warrantyPeriod, retailer, expiryDate, receiptImage, receiptMimeType } = req.body;
+app.post('/api/warranties', apiLimiter, async (req, res, next) => {
+    try {
+        const userId = req.headers['x-user-id'];
 
-    if (!userId) {
-        return res.status(401).json({ error: 'Unauthorized: User ID required' });
-    }
-
-    const sql = `INSERT INTO warranties (id, user_id, productName, purchaseDate, warrantyPeriod, retailer, expiryDate, receiptImage, receiptMimeType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-    const params = [id, userId, productName, purchaseDate, warrantyPeriod, retailer, expiryDate, receiptImage, receiptMimeType];
-
-    db.run(sql, params, function (err) {
-        if (err) {
-            res.status(400).json({ error: err.message });
-            return;
+        if (!userId) {
+            throw new AppError('Unauthorized: User ID required', 401);
         }
-        res.json({
-            message: 'success',
-            data: { ...req.body, user_id: userId },
-            id: this.lastID
+
+        // Validate warranty data
+        const validatedData = warrantySchema.parse({
+            productName: req.body.productName,
+            purchaseDate: req.body.purchaseDate,
+            warrantyPeriod: req.body.warrantyPeriod,
+            expiryDate: req.body.expiryDate,
+            retailer: req.body.retailer,
+            receiptImage: req.body.receiptImage
         });
-    });
+
+        const { id, receiptMimeType } = req.body;
+        const sql = `INSERT INTO warranties (id, user_id, productName, purchaseDate, warrantyPeriod, retailer, expiryDate, receiptImage, receiptMimeType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        const params = [
+            id,
+            userId,
+            validatedData.productName,
+            validatedData.purchaseDate,
+            validatedData.warrantyPeriod,
+            validatedData.retailer,
+            validatedData.expiryDate,
+            validatedData.receiptImage,
+            receiptMimeType
+        ];
+
+        db.run(sql, params, function (err) {
+            if (err) {
+                logger.error('Warranty creation failed', { error: err.message, userId });
+                return next(new AppError('Failed to create warranty', 500));
+            }
+
+            logger.info('Warranty created', { userId, warrantyId: id, product: validatedData.productName });
+
+            res.json({
+                message: 'success',
+                data: { ...req.body, user_id: userId },
+                id: this.lastID
+            });
+        });
+    } catch (error) {
+        if (error.name === 'ZodError') {
+            logger.warn('Warranty validation failed', { errors: error.errors });
+            return next(new AppError(error.errors[0].message, 400));
+        }
+        next(error);
+    }
 });
 
 // DELETE warranty (scoped to user)
@@ -562,18 +593,20 @@ app.post('/api/download-receipt', async (req, res) => {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
-        // Convert base64 to buffer
-        const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
+        // Convert base64 to buffer - handle both image and PDF data URIs
+        const base64Data = imageData.replace(/^data:(image|application)\/[a-zA-Z+]+;base64,/, '');
         const buffer = Buffer.from(base64Data, 'base64');
 
         // Set headers for download with proper filename
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
         res.setHeader('Content-Type', mimeType || 'application/octet-stream');
         res.setHeader('Content-Length', buffer.length);
+        res.setHeader('Cache-Control', 'no-cache');
 
+        logger.info('Receipt downloaded', { filename, mimeType, size: buffer.length });
         res.send(buffer);
     } catch (error) {
-        console.error('Download error:', error);
+        logger.error('Receipt download error', { error: error.message });
         res.status(500).json({ error: 'Download failed' });
     }
 });
