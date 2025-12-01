@@ -128,106 +128,101 @@ app.delete('/api/warranties/:id', (req, res) => {
 // AUTHENTICATION ENDPOINTS
 
 // Register - creates user immediately (Instant Signup)
-app.post('/api/auth/register', async (req, res) => {
-    const { email, name, password } = req.body;
-
-    if (!email || !password) {
-        res.status(400).json({ error: 'Email and password are required' });
-        return;
-    }
-
-    if (password.length < 6) {
-        res.status(400).json({ error: 'Password must be at least 6 characters' });
-        return;
-    }
-
+app.post('/api/auth/register', authLimiter, async (req, res, next) => {
     try {
-        const emailLower = email.toLowerCase().trim();
+        // Validate input with Zod
+        const validatedData = userSchema.parse(req.body);
+        const { email, name, password } = validatedData;
 
         // Check if user already exists
-        const exists = await emailExists(db, emailLower);
+        const exists = await emailExists(db, email);
         if (exists) {
-            res.status(400).json({ error: 'Email already registered. Please login instead.' });
-            return;
+            logger.warn('Registration attempt with existing email', { email });
+            throw new AppError('Email already registered. Please login instead.', 400);
         }
 
         // Hash password
         const passwordHash = await bcrypt.hash(password, 10);
         const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-        // Create user immediately
+        // Create user
         await new Promise((resolve, reject) => {
             db.run(
                 'INSERT INTO users (id, email, name, password_hash, email_verified) VALUES (?, ?, ?, ?, 1)',
-                [userId, emailLower, name, passwordHash],
+                [userId, email, name, passwordHash],
                 (err) => err ? reject(err) : resolve()
             );
         });
 
-        // Try to send welcome email (optional, don't block if fails)
-        try {
-            // We can use sendTestEmail or similar just to say welcome, but for now let's skip to avoid errors
-            // Or we could send a "Welcome" email if we had a template
-        } catch (e) {
-            console.error('Welcome email failed:', e);
-        }
+        // Create default notification settings
+        await new Promise((resolve) => {
+            db.run(
+                'INSERT INTO notification_settings (user_id) VALUES (?)',
+                [userId],
+                (err) => {
+                    if (err) logger.warn('Failed to create notification settings', { userId, error: err.message });
+                    resolve();
+                }
+            );
+        });
 
-        console.log(`✅ [Auth] Instant signup for ${emailLower}`);
+        logger.info('User registered successfully', { userId, email });
 
         res.json({
             success: true,
             message: 'Account created successfully',
             user: {
                 id: userId,
-                email: emailLower,
-                name: name,
+                email,
+                name,
                 email_verified: 1
             }
         });
 
     } catch (error) {
-        console.error('[Auth] Registration error:', error.message);
-        res.status(500).json({ error: `Registration failed: ${error.message}` });
+        if (error.name === 'ZodError') {
+            logger.warn('Registration validation failed', { errors: error.errors });
+            return next(new AppError(error.errors[0].message, 400));
+        }
+        logger.error('Registration error', { error: error.message, stack: error.stack });
+        next(error);
     }
 });
 
 // Login with password
-app.post('/api/auth/login', async (req, res) => {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-        res.status(400).json({ error: 'Email and password are required' });
-        return;
-    }
-
+app.post('/api/auth/login', authLimiter, async (req, res, next) => {
     try {
-        const emailLower = email.toLowerCase().trim();
+        // Validate input with Zod
+        const validatedData = loginSchema.parse(req.body);
+        const { email, password } = validatedData;
 
         // Get user
         const user = await new Promise((resolve, reject) => {
-            db.get('SELECT * FROM users WHERE email = ?', [emailLower], (err, row) => {
+            db.get('SELECT * FROM users WHERE email = ?', [email], (err, row) => {
                 if (err) reject(err);
                 else resolve(row);
             });
         });
 
         if (!user) {
-            res.status(401).json({ error: 'Invalid email or password' });
-            return;
+            logger.warn('Login attempt with non-existent email', { email });
+            throw new AppError('Invalid email or password', 401);
         }
 
         if (!user.password_hash) {
-            res.status(401).json({ error: 'Please sign up to create a password' });
-            return;
+            logger.warn('Login attempt for user without password', { email });
+            throw new AppError('Please sign up to create a password', 401);
         }
 
         // Verify password
         const passwordMatch = await bcrypt.compare(password, user.password_hash);
 
         if (!passwordMatch) {
-            res.status(401).json({ error: 'Invalid email or password' });
-            return;
+            logger.warn('Login attempt with incorrect password', { email });
+            throw new AppError('Invalid email or password', 401);
         }
+
+        logger.info('User logged in successfully', { userId: user.id, email });
 
         // Return user data
         res.json({
@@ -241,8 +236,12 @@ app.post('/api/auth/login', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('[Auth] Login error:', error);
-        res.status(500).json({ error: error.message });
+        if (error.name === 'ZodError') {
+            logger.warn('Login validation failed', { errors: error.errors });
+            return next(new AppError(error.errors[0].message, 400));
+        }
+        logger.error('Login error', { error: error.message });
+        next(error);
     }
 });
 
@@ -659,11 +658,13 @@ app.get('/', (req, res) => {
 app.use(errorHandler);
 
 app.listen(PORT, '0.0.0.0', () => {
-    // Email credentials updated: 2025-11-28 (Fix Timeout)
-    console.log(`🚀 Server running on port ${PORT} (${NODE_ENV})`);
-    console.log(`📧 Email: ${process.env.EMAIL_USER ? '✓ Configured' : '✗ Missing'}`);
-    console.log(`🗄️  Database: ${process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite'}`);
-    console.log(`🔑 Gemini API: ${process.env.VITE_GOOGLE_GENAI_API_KEY ? '✓ Configured' : '✗ Missing'}`);
+    logger.info('🚀 Server started', {
+        port: PORT,
+        environment: NODE_ENV,
+        email: process.env.EMAIL_USER ? 'configured' : 'missing',
+        database: process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite',
+        gemini: process.env.VITE_GOOGLE_GENAI_API_KEY ? 'configured' : 'missing'
+    });
 
     // Start notification scheduler
     startScheduler();
