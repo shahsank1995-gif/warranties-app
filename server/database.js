@@ -19,6 +19,12 @@ pool.on('error', (err) => {
 
 // Helper functions to maintain compatibility with SQLite-style queries
 const db = {
+    // Helper to convert ? to $1, $2, etc.
+    convertQuery: (sql) => {
+        let i = 1;
+        return sql.replace(/\?/g, () => `$${i++}`);
+    },
+
     // Query that returns all rows
     all: async (sql, params = [], callback) => {
         if (typeof params === 'function') {
@@ -26,7 +32,8 @@ const db = {
             params = [];
         }
         try {
-            const result = await pool.query(sql, params);
+            const pgSql = db.convertQuery(sql);
+            const result = await pool.query(pgSql, params);
             if (callback) callback(null, result.rows);
             return result.rows;
         } catch (err) {
@@ -42,7 +49,8 @@ const db = {
             params = [];
         }
         try {
-            const result = await pool.query(sql, params);
+            const pgSql = db.convertQuery(sql);
+            const result = await pool.query(pgSql, params);
             const row = result.rows[0] || null;
             if (callback) callback(null, row);
             return row;
@@ -59,7 +67,8 @@ const db = {
             params = [];
         }
         try {
-            const result = await pool.query(sql, params);
+            const pgSql = db.convertQuery(sql);
+            const result = await pool.query(pgSql, params);
             const ret = {
                 lastID: result.rows[0]?.id || null,
                 changes: result.rowCount
@@ -79,7 +88,8 @@ const db = {
             params = [];
         }
         try {
-            const result = await pool.query(sql, params);
+            const pgSql = db.convertQuery(sql);
+            const result = await pool.query(pgSql, params);
             if (callback) callback(null, result);
             return result;
         } catch (err) {
