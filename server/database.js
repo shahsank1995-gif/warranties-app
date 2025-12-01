@@ -20,29 +20,72 @@ pool.on('error', (err) => {
 // Helper functions to maintain compatibility with SQLite-style queries
 const db = {
     // Query that returns all rows
-    all: async (sql, params = []) => {
-        const result = await pool.query(sql, params);
-        return result.rows;
+    all: async (sql, params = [], callback) => {
+        if (typeof params === 'function') {
+            callback = params;
+            params = [];
+        }
+        try {
+            const result = await pool.query(sql, params);
+            if (callback) callback(null, result.rows);
+            return result.rows;
+        } catch (err) {
+            if (callback) callback(err);
+            throw err;
+        }
     },
 
     // Query that returns single row
-    get: async (sql, params = []) => {
-        const result = await pool.query(sql, params);
-        return result.rows[0] || null;
+    get: async (sql, params = [], callback) => {
+        if (typeof params === 'function') {
+            callback = params;
+            params = [];
+        }
+        try {
+            const result = await pool.query(sql, params);
+            const row = result.rows[0] || null;
+            if (callback) callback(null, row);
+            return row;
+        } catch (err) {
+            if (callback) callback(err);
+            throw err;
+        }
     },
 
     // Query for INSERT/UPDATE/DELETE
-    run: async (sql, params = []) => {
-        const result = await pool.query(sql, params);
-        return {
-            lastID: result.rows[0]?.id || null,
-            changes: result.rowCount
-        };
+    run: async (sql, params = [], callback) => {
+        if (typeof params === 'function') {
+            callback = params;
+            params = [];
+        }
+        try {
+            const result = await pool.query(sql, params);
+            const ret = {
+                lastID: result.rows[0]?.id || null,
+                changes: result.rowCount
+            };
+            if (callback) callback(null, ret);
+            return ret;
+        } catch (err) {
+            if (callback) callback(err);
+            throw err;
+        }
     },
 
     // Execute raw query
-    query: async (sql, params = []) => {
-        return await pool.query(sql, params);
+    query: async (sql, params = [], callback) => {
+        if (typeof params === 'function') {
+            callback = params;
+            params = [];
+        }
+        try {
+            const result = await pool.query(sql, params);
+            if (callback) callback(null, result);
+            return result;
+        } catch (err) {
+            if (callback) callback(err);
+            throw err;
+        }
     },
 
     // Close connection
