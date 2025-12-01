@@ -652,8 +652,11 @@ app.get('/api/health', (req, res) => {
 
 // Root endpoint for default health checks
 app.get('/', (req, res) => {
-    res.send('Warranties API is running');
+    res.send('Warranto API is running - Production Ready');
 });
+
+// Error handler - MUST be last middleware
+app.use(errorHandler);
 
 app.listen(PORT, '0.0.0.0', () => {
     // Email credentials updated: 2025-11-28 (Fix Timeout)
