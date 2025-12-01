@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import type { WarrantyItem } from '../types';
 import { calculateWarrantyStatus, formatDateForDisplay } from '../utils/dateUtils';
-import { API_URL } from '../services/api';
 import { CalendarIcon } from './icons/CalendarIcon';
 import { ShieldCheckIcon } from './icons/ShieldCheckIcon';
 import { StoreIcon } from './icons/StoreIcon';

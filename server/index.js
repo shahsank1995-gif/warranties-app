@@ -4,14 +4,15 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const db = require('./database');
-const multer = require('multer');
-const fs = require('fs');
 const bcrypt = require('bcrypt');
 const { sendTestEmail, sendVerificationEmail } = require('./emailService');
 const { startScheduler, triggerManualCheck } = require('./scheduler');
 const { sendPushNotification } = require('./fcmService');
 const { createVerificationCode, verifyCode, createOrGetUser, emailExists, cleanupExpiredCodes } = require('./authService');
 const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
+const { AppError, errorHandler } = require('./middleware/errorHandler');
+const logger = require('./utils/logger');
+const { warrantySchema, userSchema, loginSchema, notificationSettingsSchema, verifyCodeSchema } = require('./schemas/validation');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,11 +34,8 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-app.use(express.json({ limit: '50mb' })); // Increase limit for base64 images if needed
+app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-
-// Static files for uploaded images (if we decide to save to disk later)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 
