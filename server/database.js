@@ -1,202 +1,144 @@
-const sqlite3 = require('sqlite3').verbose();
 const { Pool } = require('pg');
 const path = require('path');
 
-// Check if we are in production (Postgres) or development (SQLite)
-const isPostgres = !!process.env.DATABASE_URL;
+// PostgreSQL connection
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
-class DatabaseAdapter {
-    constructor() {
-        if (isPostgres) {
-            console.log('🔌 Connecting to PostgreSQL...');
-            this.pool = new Pool({
-                connectionString: process.env.DATABASE_URL,
-                ssl: { rejectUnauthorized: false } // Required for Neon/Render
-            });
-            this.type = 'postgres';
-        } else {
-            console.log('🔌 Connecting to SQLite...');
-            const dbPath = path.resolve(__dirname, 'warranties.db');
-            this.sqlite = new sqlite3.Database(dbPath);
-            this.type = 'sqlite';
-        }
-        this.init();
-    }
+// Test connection
+pool.on('connect', () => {
+    console.log('✅ Connected to PostgreSQL database');
+});
 
-    init() {
-        this.createTables();
-    }
+pool.on('error', (err) => {
+    console.error('❌ PostgreSQL error:', err);
+    process.exit(-1);
+});
 
-    // Convert SQLite query (?) to Postgres query ($1, $2)
-    normalizeQuery(sql) {
-        if (this.type === 'sqlite') return sql;
-        let i = 1;
-        return sql.replace(/\?/g, () => `$${i++}`);
-    }
+// Helper functions to maintain compatibility with SQLite-style queries
+const db = {
+    // Query that returns all rows
+    all: async (sql, params = []) => {
+        const result = await pool.query(sql, params);
+        return result.rows;
+    },
 
-    // Execute a query that returns no results (INSERT, UPDATE, DELETE)
-    run(sql, params = [], callback) {
-        if (typeof params === 'function') {
-            callback = params;
-            params = [];
-        }
+    // Query that returns single row
+    get: async (sql, params = []) => {
+        const result = await pool.query(sql, params);
+        return result.rows[0] || null;
+    },
 
-        if (this.type === 'postgres') {
-            this.pool.query(this.normalizeQuery(sql), params)
-                .then(res => {
-                    if (callback) callback.call({ lastID: 0, changes: res.rowCount }, null);
-                })
-                .catch(err => {
-                    if (callback) callback(err);
-                });
-        } else {
-            this.sqlite.run(sql, params, callback);
-        }
-    }
-
-    // Execute a query that returns a single row
-    get(sql, params = [], callback) {
-        if (typeof params === 'function') {
-            callback = params;
-            params = [];
-        }
-
-        if (this.type === 'postgres') {
-            this.pool.query(this.normalizeQuery(sql), params)
-                .then(res => {
-                    if (callback) callback(null, res.rows[0]);
-                })
-                .catch(err => {
-                    if (callback) callback(err);
-                });
-        } else {
-            this.sqlite.get(sql, params, callback);
-        }
-    }
-
-    // Execute a query that returns all rows
-    all(sql, params = [], callback) {
-        if (typeof params === 'function') {
-            callback = params;
-            params = [];
-        }
-
-        if (this.type === 'postgres') {
-            this.pool.query(this.normalizeQuery(sql), params)
-                .then(res => {
-                    if (callback) callback(null, res.rows);
-                })
-                .catch(err => {
-                    if (callback) callback(err);
-                });
-        } else {
-            this.sqlite.all(sql, params, callback);
-        }
-    }
-
-    createTables() {
-        const isPg = this.type === 'postgres';
-
-        // Helper for auto-increment syntax
-        const autoInc = isPg ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT';
-        const textType = isPg ? 'TEXT' : 'TEXT';
-        const dateType = isPg ? 'TIMESTAMP' : 'DATETIME';
-        const now = isPg ? 'CURRENT_TIMESTAMP' : 'CURRENT_TIMESTAMP';
-
-        const queries = [
-            // Warranties Table
-            `CREATE TABLE IF NOT EXISTS warranties (
-                id TEXT PRIMARY KEY,
-                user_id TEXT,
-                productName TEXT NOT NULL,
-                purchaseDate TEXT NOT NULL,
-                warrantyPeriod TEXT NOT NULL,
-                retailer TEXT,
-                expiryDate TEXT,
-                receiptImage TEXT,
-                receiptMimeType TEXT,
-                createdAt ${dateType} DEFAULT ${now},
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )`,
-
-            // Users Table
-            `CREATE TABLE IF NOT EXISTS users (
-                id TEXT PRIMARY KEY,
-                email TEXT UNIQUE,
-                name TEXT,
-                password_hash TEXT,
-                email_verified INTEGER DEFAULT 0,
-                created_at ${dateType} DEFAULT ${now}
-            )`,
-
-            // Notification Settings
-            `CREATE TABLE IF NOT EXISTS notification_settings (
-                user_id TEXT PRIMARY KEY,
-                email_enabled INTEGER DEFAULT 1,
-                push_enabled INTEGER DEFAULT 0,
-                alert_threshold INTEGER DEFAULT 30,
-                notification_time TEXT DEFAULT '09:00',
-                last_notification_sent ${dateType},
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )`,
-
-            // Device Tokens
-            `CREATE TABLE IF NOT EXISTS device_tokens (
-                id ${autoInc},
-                user_id TEXT NOT NULL,
-                token TEXT NOT NULL UNIQUE,
-                platform TEXT,
-                created_at ${dateType} DEFAULT ${now},
-                last_used ${dateType} DEFAULT ${now},
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )`,
-
-            // Verification Codes
-            `CREATE TABLE IF NOT EXISTS verification_codes (
-                id ${autoInc},
-                email TEXT NOT NULL,
-                code TEXT NOT NULL,
-                expires_at ${dateType} NOT NULL,
-                used INTEGER DEFAULT 0,
-                password_temp TEXT,
-                created_at ${dateType} DEFAULT ${now}
-            )`
-        ];
-
-        // Execute table creation sequentially
-        const executeNext = (index) => {
-            if (index >= queries.length) {
-                this.seedData();
-                return;
-            }
-            this.run(queries[index], (err) => {
-                if (err) console.error(`Error creating table ${index}:`, err.message);
-                else executeNext(index + 1);
-            });
+    // Query for INSERT/UPDATE/DELETE
+    run: async (sql, params = []) => {
+        const result = await pool.query(sql, params);
+        return {
+            lastID: result.rows[0]?.id || null,
+            changes: result.rowCount
         };
+    },
 
-        executeNext(0);
+    // Execute raw query
+    query: async (sql, params = []) => {
+        return await pool.query(sql, params);
+    },
+
+    // Close connection
+    close: async () => {
+        await pool.end();
     }
+};
 
-    seedData() {
-        // Create default user if not exists
-        this.run(`INSERT INTO users (id, email) VALUES ('demo-user', NULL) ON CONFLICT(id) DO NOTHING`, (err) => {
-            if (err && this.type === 'sqlite') {
-                // Fallback for SQLite which might not support ON CONFLICT in older versions or syntax diff
-                this.run(`INSERT OR IGNORE INTO users (id, email) VALUES ('demo-user', NULL)`);
-            }
-        });
+// Initialize database tables
+async function initializeDatabase() {
+    try {
+        console.log('🔧 Initializing PostgreSQL database...');
 
-        // Create default settings
-        this.run(`INSERT INTO notification_settings (user_id) VALUES ('demo-user') ON CONFLICT(user_id) DO NOTHING`, (err) => {
-            if (err && this.type === 'sqlite') {
-                this.run(`INSERT OR IGNORE INTO notification_settings (user_id) VALUES ('demo-user')`);
-            }
-        });
+        // Read and execute migration file
+        const fs = require('fs');
+        const migrationPath = path.join(__dirname, 'migrations', '001_add_organizations.sql');
 
-        console.log(`✅ Database initialized (${this.type})`);
+        if (fs.existsSync(migrationPath)) {
+            const migration = fs.readFileSync(migrationPath, 'utf8');
+            await pool.query(migration);
+            console.log('✅ Organization tables created/verified');
+        }
+
+        // Create users table if it doesn't exist (existing functionality)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                id VARCHAR(255) PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                name VARCHAR(255),
+                password_hash VARCHAR(255),
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        `);
+
+        // Create warranties table with organization support
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS warranties (
+                id VARCHAR(255) PRIMARY KEY,
+                user_id VARCHAR(255) NOT NULL,
+                organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+                productName VARCHAR(500) CHECK (LENGTH(productName) >= 1),
+                purchaseDate DATE NOT NULL,
+                warrantyPeriod VARCHAR(100),
+                expiryDate DATE NOT NULL,
+                retailer VARCHAR(500),
+                receiptImage TEXT,
+                receiptMimeType VARCHAR(100),
+                department VARCHAR(100),
+                cost_center VARCHAR(100),
+                asset_id VARCHAR(100),
+                vendor VARCHAR(200),
+                purchase_order_number VARCHAR(100),
+                warranty_cost DECIMAL(12, 2),
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        `);
+
+        // Create notification_settings table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS notification_settings (
+                user_id VARCHAR(255) PRIMARY KEY,
+                email_enabled BOOLEAN DEFAULT TRUE,
+                push_enabled BOOLEAN DEFAULT FALSE,
+                sms_enabled BOOLEAN DEFAULT FALSE,
+                alert_days INTEGER DEFAULT 30 CHECK (alert_days > 0),
+                fcm_token TEXT,
+                updated_at TIMESTAMP DEFAULT NOW()
+            )
+        `);
+
+        // Create verification_codes table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS verification_codes (
+                id SERIAL PRIMARY KEY,
+                email VARCHAR(255) NOT NULL,
+                code VARCHAR(6) NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                created_at TIMESTAMP DEFAULT NOW(),
+                used_at TIMESTAMP
+            )
+        `);
+
+        // Create indexes
+        await pool.query('CREATE INDEX IF NOT EXISTS idx_warranties_user_id ON warranties(user_id)');
+        await pool.query('CREATE INDEX IF NOT EXISTS idx_warranties_expiry ON warranties(expiryDate)');
+        await pool.query('CREATE INDEX IF NOT EXISTS idx_verification_codes_email ON verification_codes(email)');
+
+        console.log('✅ Database initialization complete');
+    } catch (error) {
+        console.error('❌ Database initialization error:', error);
+        throw error;
     }
 }
 
-const db = new DatabaseAdapter();
+// Run initialization
+initializeDatabase().catch(console.error);
+
 module.exports = db;
