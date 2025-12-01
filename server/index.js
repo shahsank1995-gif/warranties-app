@@ -19,8 +19,18 @@ const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Security Middleware
+// Security Middleware
 app.use(helmet({
-    contentSecurityPolicy: NODE_ENV === 'production' ? true : false
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            connectSrc: ["'self'", "https://warranties-app.vercel.app", "https://www.warranties-app.vercel.app", "http://localhost:5173"],
+            imgSrc: ["'self'", "data:", "https:", "blob:"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+        },
+    },
+    crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
 // CORS Configuration
