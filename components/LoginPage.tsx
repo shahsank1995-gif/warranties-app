@@ -132,13 +132,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         </div>
 
         {/* Title */}
-        <h1 className="text-5xl md:text-6xl font-serif font-bold mb-4 animate-fade-in-stagger" style={{ animationDelay: '200ms' }}>
+        <h1 className="text-5xl md:text-6xl font-serif font-bold mb-2 animate-fade-in-stagger" style={{ animationDelay: '200ms' }}>
           <span className="bg-gradient-to-r from-off-white via-brand-purple to-off-white bg-clip-text text-transparent animate-gradient-x">
-            Track with confidence.
+            WARRANTO
           </span>
         </h1>
 
-        <p className="text-lg text-muted-silver mb-10 leading-relaxed animate-fade-in-stagger" style={{ animationDelay: '300ms' }}>
+        <p className="text-lg text-brand-purple/80 mb-8 font-medium animate-fade-in-stagger" style={{ animationDelay: '250ms' }}>
+          Track with confidence.
+        </p>
+
+        <p className="text-base text-muted-silver mb-10 leading-relaxed animate-fade-in-stagger" style={{ animationDelay: '300ms' }}>
           {mode === 'verify' ? 'Check your email for the verification code' : 'Sign in to manage your warranties and receipts.'}
         </p>
 
