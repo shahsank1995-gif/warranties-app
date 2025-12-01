@@ -289,18 +289,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
         {/* Feature highlights */}
         {mode !== 'verify' && (
-          <div className="mt-12 grid grid-cols-3 gap-4 animate-fade-in-stagger" style={{ animationDelay: '500ms' }}>
+          <div className="mt-12 grid grid-cols-3 gap-6 animate-fade-in-stagger" style={{ animationDelay: '500ms' }}>
             <div className="text-center">
-              <div className="text-2xl mb-2">📸</div>
-              <p className="text-xs text-muted-silver">Scan Receipts</p>
+              <div className="text-3xl mb-3">📸</div>
+              <p className="text-sm font-medium text-off-white">Scan Receipts</p>
             </div>
             <div className="text-center">
-              <div className="text-2xl mb-2">🔔</div>
-              <p className="text-xs text-muted-silver">Get Alerts</p>
+              <div className="text-3xl mb-3">🔔</div>
+              <p className="text-sm font-medium text-off-white">Get Alerts</p>
             </div>
             <div className="text-center">
-              <div className="text-2xl mb-2">📊</div>
-              <p className="text-xs text-muted-silver">Track All</p>
+              <div className="text-3xl mb-3">📊</div>
+              <p className="text-sm font-medium text-off-white">Track All</p>
             </div>
           </div>
         )}
