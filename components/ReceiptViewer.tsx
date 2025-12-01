@@ -3,11 +3,6 @@ import React from 'react';
 interface ReceiptViewerProps {
     imageUrl: string;
     productName: string;
-import React from 'react';
-
-interface ReceiptViewerProps {
-    imageUrl: string;
-    productName: string;
     onClose: () => void;
 }
 
