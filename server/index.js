@@ -11,6 +11,7 @@ const { sendTestEmail, sendVerificationEmail } = require('./emailService');
 const { startScheduler, triggerManualCheck } = require('./scheduler');
 const { sendPushNotification } = require('./fcmService');
 const { createVerificationCode, verifyCode, createOrGetUser, emailExists, cleanupExpiredCodes } = require('./authService');
+const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
