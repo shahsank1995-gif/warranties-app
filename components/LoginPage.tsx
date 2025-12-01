@@ -124,31 +124,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       </div>
 
       <div className="w-full max-w-md text-center relative z-10">
-        {/* Logo */}
-        <div className="animate-fade-in-stagger animate-float" style={{ animationDelay: '100ms' }}>
-          <div className="inline-block p-4 rounded-2xl bg-gradient-to-br from-brand-purple/20 to-transparent border border-brand-purple/30 mb-6">
-            <ShieldCheckIcon className="w-12 h-12 text-brand-purple" />
-          </div>
-        </div>
-
-        {/* Title */}
-        <h1 className="text-5xl md:text-6xl font-serif font-bold mb-2 animate-fade-in-stagger" style={{ animationDelay: '200ms' }}>
+        {/* Title - Direct and bold */}
+        <h1 className="text-6xl md:text-7xl font-serif font-bold mb-3 animate-fade-in-stagger tracking-tight" style={{ animationDelay: '100ms' }}>
           <span className="bg-gradient-to-r from-off-white via-brand-purple to-off-white bg-clip-text text-transparent animate-gradient-x">
             WARRANTO
           </span>
         </h1>
 
-        <p className="text-lg text-brand-purple/80 mb-8 font-medium animate-fade-in-stagger" style={{ animationDelay: '250ms' }}>
-          Track with confidence.
+        <p className="text-xl text-brand-purple/90 mb-8 font-semibold animate-fade-in-stagger" style={{ animationDelay: '200ms' }}>
+          Track with confidence
         </p>
 
-        <p className="text-base text-muted-silver mb-10 leading-relaxed animate-fade-in-stagger" style={{ animationDelay: '300ms' }}>
-          {mode === 'verify' ? 'Check your email for the verification code' : 'Sign in to manage your warranties and receipts.'}
+        <p className="text-sm text-muted-silver/80 mb-12 leading-relaxed animate-fade-in-stagger" style={{ animationDelay: '250ms' }}>
+          {mode === 'verify' ? 'Check your email for the verification code' : 'Manage your warranties and receipts'}
         </p>
 
         {/* Tabs - Only show when not verifying */}
         {mode !== 'verify' && (
-          <div className="flex gap-2 mb-6 animate-fade-in-stagger" style={{ animationDelay: '350ms' }}>
+          <div className="flex gap-2 mb-8 animate-fade-in-stagger" style={{ animationDelay: '300ms' }}>
             <button
               type="button"
               onClick={() => { setMode('login'); setError(''); }}
