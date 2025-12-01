@@ -99,30 +99,6 @@ export const registerUser = async (email: string, name: string, password?: strin
         const response = await fetch(`${API_URL}/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, name, password }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            console.error('Registration failed:', response.status, data);
-            throw new Error(data.error || 'Registration failed');
-        }
-
-        return data;
-    } catch (error) {
-        console.error('Registration error:', error);
-        throw error;
-    }
-};
-
-// Helper function to wake up backend (fixes Render cold starts)
-const wakeUpBackend = async (): Promise<boolean> => {
-    try {
-        console.log('🔄 Waking up backend...');
-        const response = await fetch(`${API_URL}/health`, {
-            method: 'GET',
-            signal: AbortSignal.timeout(30000) // 30 second timeout
         });
         const healthy = response.ok;
         console.log(healthy ? '✅ Backend is awake' : '⚠️ Backend health check failed');
