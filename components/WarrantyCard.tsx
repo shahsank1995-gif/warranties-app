@@ -6,7 +6,6 @@ import { CalendarIcon } from './icons/CalendarIcon';
 import { ShieldCheckIcon } from './icons/ShieldCheckIcon';
 import { StoreIcon } from './icons/StoreIcon';
 import { TrashIcon } from './icons/TrashIcon';
-import { DownloadIcon } from './icons/DownloadIcon';
 import { ReceiptViewer } from './ReceiptViewer';
 
 interface WarrantyCardProps {
@@ -40,58 +39,6 @@ export const WarrantyCard: React.FC<WarrantyCardProps> = ({ item, onDelete, styl
 
   const currentStyles = statusStyles[status];
 
-  const handleDownload = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!item.receiptImage || !item.receiptMimeType) {
-      alert('No receipt image available to download');
-      return;
-    }
-
-    try {
-      const extensionMap: Record<string, string> = {
-        'image/png': 'png',
-        'image/jpeg': 'jpg',
-        'image/jpg': 'jpg',
-        'image/webp': 'webp',
-        'application/pdf': 'pdf',
-      };
-
-      const extension = extensionMap[item.receiptMimeType] || 'png';
-
-      // Create descriptive filename: Receipt-ProductName-Retailer-Date.ext
-      const sanitizedProduct = item.productName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
-      const sanitizedRetailer = item.retailer ? item.retailer.replace(/[^a-z0-9]/gi, '-').toLowerCase() : 'store';
-      const dateStr = item.purchaseDate.replace(/-/g, '');  // 20241125
-      const filename = `Receipt-${sanitizedProduct}-${sanitizedRetailer}-${dateStr}.${extension}`;
-
-      // Send to server for proper download headers
-      const response = await fetch(`${API_URL}/api/download-receipt`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageData: item.receiptImage,
-          filename: filename,
-          mimeType: item.receiptMimeType
-        })
-      });
-
-      if (!response.ok) throw new Error('Download failed');
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      link.click();
-
-      setTimeout(() => URL.revokeObjectURL(url), 100);
-      console.log(`✅ Downloaded: ${filename}`);
-    } catch (error) {
-      console.error('Failed to download receipt:', error);
-      alert(`Download failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
-
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onDelete(item.id);
@@ -122,27 +69,17 @@ export const WarrantyCard: React.FC<WarrantyCardProps> = ({ item, onDelete, styl
           <h3 className="flex-grow text-xl font-serif font-semibold text-off-white leading-tight">{item.productName}</h3>
           <div className="flex-shrink-0 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             {hasReceipt && (
-              <>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setShowReceiptViewer(true); }}
-                  className="text-muted-silver hover:text-off-white p-1.5 rounded-full"
-                  aria-label="View receipt"
-                  title="View Receipt"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                </button>
-                <button
-                  onClick={handleDownload}
-                  className="text-muted-silver hover:text-off-white p-1.5 rounded-full"
-                  aria-label="Download receipt"
-                  title="Download Receipt"
-                >
-                  <DownloadIcon className="w-5 h-5" />
-                </button>
-              </>
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowReceiptViewer(true); }}
+                className="text-muted-silver hover:text-off-white p-1.5 rounded-full"
+                aria-label="View receipt"
+                title="View Receipt"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </button>
             )}
             <button onClick={handleDeleteClick} className="text-muted-silver hover:text-off-white p-1.5 rounded-full" aria-label="Delete warranty">
               <TrashIcon className="w-5 h-5" />
