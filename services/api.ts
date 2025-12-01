@@ -109,6 +109,23 @@ export const registerUser = async (email: string, name: string, password?: strin
     }
 };
 
+// Helper function to wake up backend (fixes Render cold starts)
+const wakeUpBackend = async (): Promise<boolean> => {
+    try {
+        console.log('🔄 Waking up backend...');
+        const response = await fetch(`${API_URL}/health`, {
+            method: 'GET',
+            signal: AbortSignal.timeout(30000) // 30 second timeout
+        });
+        const healthy = response.ok;
+        console.log(healthy ? '✅ Backend is awake' : '⚠️ Backend health check failed');
+        return healthy;
+    } catch (error) {
+        console.warn('⏳ Backend is starting up...', error);
+        return false;
+    }
+};
+
 // Helper function to retry fetch with exponential backoff
 const fetchWithRetry = async (url: string, options: RequestInit, maxRetries = 3): Promise<Response> => {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
