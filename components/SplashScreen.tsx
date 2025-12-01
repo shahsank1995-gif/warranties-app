@@ -6,48 +6,46 @@ interface SplashScreenProps {
 }
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
-    const [animationPhase, setAnimationPhase] = useState<'enter' | 'exit'>('enter');
+    const [isVisible, setIsVisible] = useState(true);
 
     useEffect(() => {
-        // Phase 1: Show logo (1.5s)
-        const showTimer = setTimeout(() => {
-            setAnimationPhase('exit');
-        }, 1500);
+        const timer = setTimeout(() => {
+            setIsVisible(false);
+            setTimeout(onFinish, 500); // Wait for fade out
+        }, 2500);
 
-        // Phase 2: Slide up and fade (0.8s)
-        const exitTimer = setTimeout(() => {
-            onFinish();
-        }, 2300);
-
-        return () => {
-            clearTimeout(showTimer);
-            clearTimeout(exitTimer);
-        };
+        return () => clearTimeout(timer);
     }, [onFinish]);
 
     return (
         <div
-            className={`fixed inset-0 z-50 flex items-center justify-center bg-black transition-all duration-800 ${animationPhase === 'exit' ? '-translate-y-1/3 opacity-0' : 'translate-y-0 opacity-100'
+            className={`fixed inset-0 z-50 flex items-center justify-center bg-black transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
                 }`}
         >
             <div className="relative flex flex-col items-center">
-                {/* Logo with smooth scale animation */}
-                <div className={`relative transition-all duration-700 ${animationPhase === 'enter' ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}>
-                    {/* Subtle glow */}
-                    <div className="absolute inset-0 bg-brand-purple/20 blur-2xl rounded-full scale-125 animate-pulse"></div>
+                {/* Logo Container with Spring Animation */}
+                <div className="relative animate-spring-bounce">
+                    {/* Glow Effect behind Logo */}
+                    <div className="absolute inset-0 bg-brand-purple/20 blur-3xl rounded-full scale-150 animate-pulse"></div>
 
-                    <LogoIcon className="w-20 h-20 text-white relative z-10 drop-shadow-[0_0_20px_rgba(169,81,249,0.6)]" />
+                    <LogoIcon className="w-24 h-24 text-white relative z-10 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]" />
+
+                    {/* Shimmer Overlay */}
+                    <div className="absolute inset-0 z-20 overflow-hidden rounded-full">
+                        <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12"></div>
+                    </div>
                 </div>
 
-                {/* Brand name - slides up with logo */}
+                {/* Text Animation */}
                 <div className="mt-6 overflow-hidden">
-                    <h1
-                        className={`text-3xl font-serif font-bold text-white tracking-[0.3em] transition-all duration-700 delay-300 ${animationPhase === 'enter' ? 'translate-y-8 opacity-0' : 'translate-y-0 opacity-100'
-                            }`}
-                    >
+                    <h1 className="text-4xl font-serif font-bold text-white tracking-widest animate-slide-up" style={{ animationDelay: '0.3s' }}>
                         WARRANTO
                     </h1>
                 </div>
+
+                <p className="mt-2 text-muted-silver text-sm tracking-widest uppercase animate-slide-up opacity-0" style={{ animationDelay: '00.5s', animationFillMode: 'forwards' }}>
+                    Premium Warranty Tracker
+                </p>
             </div>
         </div>
     );

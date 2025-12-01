@@ -123,22 +123,28 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         <div className="absolute -bottom-8 left-20 w-72 h-72 bg-amber-gold/10 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000" />
       </div>
 
-      <div className="w-full max-w-md text-center relative z-10 animate-fade-in" style={{ animationDuration: '0.8s', animationDelay: '0.2s', animationFillMode: 'both' }}>
+      <div className="w-full max-w-md text-center relative z-10">
         {/* Logo */}
-        <div className="animate-fade-in-stagger animate-float" style={{ animationDelay: '300ms' }}>
+        <div className="animate-fade-in-stagger animate-float" style={{ animationDelay: '100ms' }}>
           <div className="inline-block p-4 rounded-2xl bg-gradient-to-br from-brand-purple/20 to-transparent border border-brand-purple/30 mb-6">
             <ShieldCheckIcon className="w-12 h-12 text-brand-purple" />
           </div>
         </div>
 
-        {/* Simplified subtitle */}
-        <p className="text-lg text-muted-silver mb-10 leading-relaxed animate-fade-in-stagger" style={{ animationDelay: '400ms' }}>
+        {/* Title */}
+        <h1 className="text-5xl md:text-6xl font-serif font-bold mb-4 animate-fade-in-stagger" style={{ animationDelay: '200ms' }}>
+          <span className="bg-gradient-to-r from-off-white via-brand-purple to-off-white bg-clip-text text-transparent animate-gradient-x">
+            Track with confidence.
+          </span>
+        </h1>
+
+        <p className="text-lg text-muted-silver mb-10 leading-relaxed animate-fade-in-stagger" style={{ animationDelay: '300ms' }}>
           {mode === 'verify' ? 'Check your email for the verification code' : 'Sign in to manage your warranties and receipts.'}
         </p>
 
         {/* Tabs - Only show when not verifying */}
         {mode !== 'verify' && (
-          <div className="flex gap-2 mb-6 animate-fade-in-stagger" style={{ animationDelay: '500ms' }}>
+          <div className="flex gap-2 mb-6 animate-fade-in-stagger" style={{ animationDelay: '350ms' }}>
             <button
               type="button"
               onClick={() => { setMode('login'); setError(''); }}
