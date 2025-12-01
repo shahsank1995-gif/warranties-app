@@ -1,0 +1,16 @@
+# Ignore server directory - backend runs on Render
+server/
+server/**
+*.db
+*.db-journal
+
+# Logs
+logs/
+*.log
+
+# Environment files
+.env.local
+.env
+
+# Build outputs
+dist-server/
