@@ -1,30 +1,8 @@
-const nodemailer = require('nodemailer');
+const mailchimp = require('@mailchimp/mailchimp_transactional')(process.env.MAILCHIMP_API_KEY);
 
-// Email configuration
-const createTransporter = () => {
-  const emailUser = process.env.EMAIL_USER;
-  const emailPassword = process.env.EMAIL_PASSWORD;
-
-  // Validate email credentials exist
-  if (!emailUser || !emailPassword) {
-    throw new Error('Email credentials not configured. Please set EMAIL_USER and EMAIL_PASSWORD environment variables.');
-  }
-
-  // Warn if using placeholder
-  if (emailPassword.includes('paste-your') || emailPassword.length < 6) {
-    throw new Error('EMAIL_PASSWORD appears to be a placeholder. Please set a valid Gmail App Password.');
-  }
-
-  return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // use SSL
-    auth: {
-      user: emailUser,
-      pass: emailPassword
-    }
-  });
-};
+// Mailchimp configuration
+const FROM_EMAIL = process.env.MAILCHIMP_FROM_EMAIL || 'shahsank1995@gmail.com';
+const FROM_NAME = 'Warranto';
 
 /**
  * Send warranty expiry notification email
@@ -37,9 +15,12 @@ async function sendExpiryNotificationEmail(recipientEmail, expiringWarranties, a
     return { success: false, message: 'Invalid parameters' };
   }
 
-  try {
-    const transporter = createTransporter();
+  if (!process.env.MAILCHIMP_API_KEY) {
+    console.warn('Mailchimp API key not configured');
+    return { success: false, message: 'Email service not configured' };
+  }
 
+  try {
     // Create warranty list HTML
     const warrantyListHTML = expiringWarranties.map(w => `
       <tr>
@@ -143,23 +124,28 @@ async function sendExpiryNotificationEmail(recipientEmail, expiringWarranties, a
 </html>
     `;
 
-    const mailOptions = {
-      from: `"Warranto Alerts" <${process.env.EMAIL_USER}>`,
-      to: recipientEmail,
+    const message = {
+      from_email: FROM_EMAIL,
+      from_name: FROM_NAME,
+      to: [{
+        email: recipientEmail,
+        type: 'to'
+      }],
       subject: `⚠️ ${expiringWarranties.length} ${expiringWarranties.length === 1 ? 'Warranty' : 'Warranties'} Expiring Soon`,
       html: htmlContent,
       text: `Warranty Expiry Alert\n\nYou have ${expiringWarranties.length} ${expiringWarranties.length === 1 ? 'warranty' : 'warranties'} expiring within the next ${alertThreshold} days:\n\n` +
         expiringWarranties.map(w => `- ${w.productName} (${w.retailer || 'N/A'}) - Expires in ${w.daysRemaining} days`).join('\n')
     };
 
-    await transporter.sendMail(mailOptions);
+    const response = await mailchimp.messages.send({ message });
+    console.log('Mailchimp expiry notification sent:', response);
 
     return {
       success: true,
       message: `Email sent successfully to ${recipientEmail}`
     };
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('Error sending Mailchimp email:', error);
     return {
       success: false,
       message: error.message
@@ -176,12 +162,19 @@ async function sendTestEmail(recipientEmail) {
     return { success: false, message: 'Email address required' };
   }
 
-  try {
-    const transporter = createTransporter();
+  if (!process.env.MAILCHIMP_API_KEY) {
+    console.warn('Mailchimp API key not configured');
+    return { success: false, message: 'Email service not configured' };
+  }
 
-    const mailOptions = {
-      from: `"Warranto Alerts" <${process.env.EMAIL_USER}>`,
-      to: recipientEmail,
+  try {
+    const message = {
+      from_email: FROM_EMAIL,
+      from_name: FROM_NAME,
+      to: [{
+        email: recipientEmail,
+        type: 'to'
+      }],
       subject: '✅ Test Email - Warranto Notifications',
       html: `
 <!DOCTYPE html>
@@ -191,7 +184,7 @@ async function sendTestEmail(recipientEmail) {
     <h1 style="color: white; margin: 0;">✅ Email Configured Successfully!</h1>
   </div>
   <div style="padding: 20px; background: #f9f9f9; margin-top: 20px; border-radius: 8px;">
-    <p>Great news! Your email notifications are working perfectly.</p>
+    <p>Great news! Your email notifications are working perfectly with Mailchimp.</p>
     <p>You'll now receive alerts when your warranties are about to expire.</p>
     <p style="margin-top: 30px; color: #666; font-size: 14px;">
       This is a test email from Warranto.
@@ -203,7 +196,8 @@ async function sendTestEmail(recipientEmail) {
       text: 'Email configured successfully! You will now receive warranty expiry notifications.'
     };
 
-    await transporter.sendMail(mailOptions);
+    const response = await mailchimp.messages.send({ message });
+    console.log('Mailchimp test email sent:', response);
 
     return {
       success: true,
@@ -229,8 +223,12 @@ async function sendVerificationEmail(recipientEmail, code, name = null) {
     return { success: false, message: 'Email and code required' };
   }
 
+  if (!process.env.MAILCHIMP_API_KEY) {
+    console.warn('Mailchimp API key not configured');
+    return { success: false, message: 'Email service not configured' };
+  }
+
   try {
-    const transporter = createTransporter();
     const greeting = name ? `Hi ${name}!` : 'Hello!';
 
     const htmlContent = `
@@ -307,15 +305,20 @@ async function sendVerificationEmail(recipientEmail, code, name = null) {
 </html>
         `;
 
-    const mailOptions = {
-      from: `"Warranto" <${process.env.EMAIL_USER}>`,
-      to: recipientEmail,
+    const message = {
+      from_email: FROM_EMAIL,
+      from_name: FROM_NAME,
+      to: [{
+        email: recipientEmail,
+        type: 'to'
+      }],
       subject: `${code} is your Warranto verification code`,
       html: htmlContent,
       text: `${greeting}\n\nYour Warranto verification code is: ${code}\n\nThis code expires in 10 minutes.\n\nIf you didn't request this code, please ignore this email.`
     };
 
-    await transporter.sendMail(mailOptions);
+    const response = await mailchimp.messages.send({ message });
+    console.log('Mailchimp verification email sent:', response);
 
     return {
       success: true,

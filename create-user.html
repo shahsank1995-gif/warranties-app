@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Create User</title>
+</head>
+
+<body>
+    <h1>Creating User...</h1>
+    <pre id="result">Loading...</pre>
+    <script>
+        fetch('https://warranties-api.onrender.com/api/admin/create-user', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                email: 'prakamyak2001@gmail.com',
+                name: 'Prakamyak',
+                password: 'password123'
+            })
+        })
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+            })
+            .catch(err => {
+                document.getElementById('result').textContent = 'Error: ' + err.message;
+            });
+    </script>
+</body>
+
+</html>
