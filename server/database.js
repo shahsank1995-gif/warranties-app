@@ -113,15 +113,49 @@ async function initializeDatabase() {
     try {
         console.log('🔧 Initializing PostgreSQL database...');
 
-        // Read and execute migration file
-        const fs = require('fs');
-        const migrationPath = path.join(__dirname, 'migrations', '001_add_organizations.sql');
+        // Create users table first (no dependencies)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                id VARCHAR(255) PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                name VARCHAR(255),
+                password_hash VARCHAR(255),
+                email_verified BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        `);
 
-        if (fs.existsSync(migrationPath)) {
-            const migration = fs.readFileSync(migrationPath, 'utf8');
+        // Create warranties table (base version - migration will add organization columns)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS warranties (
+                id VARCHAR(255) PRIMARY KEY,
+                user_id VARCHAR(255) NOT NULL,
+                productName VARCHAR(500) CHECK (LENGTH(productName) >= 1),
+                purchaseDate DATE NOT NULL,
+                warrantyPeriod VARCHAR(100),
+                expiryDate DATE NOT NULL,
+                retailer VARCHAR(500),
+                receiptImage TEXT,
+                receiptMimeType VARCHAR(100),
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        `);
 
-            // Create verification_codes table
-            await pool.query(`
+        // Create notification_settings table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS notification_settings (
+                user_id VARCHAR(255) PRIMARY KEY,
+                email_enabled BOOLEAN DEFAULT TRUE,
+                push_enabled BOOLEAN DEFAULT FALSE,
+                sms_enabled BOOLEAN DEFAULT FALSE,
+                alert_days INTEGER DEFAULT 30 CHECK (alert_days > 0),
+                fcm_token TEXT,
+                updated_at TIMESTAMP DEFAULT NOW()
+            )
+        `);
+
+        // Create verification_codes table
+        await pool.query(`
             CREATE TABLE IF NOT EXISTS verification_codes (
                 id SERIAL PRIMARY KEY,
                 email VARCHAR(255) NOT NULL,
@@ -132,19 +166,30 @@ async function initializeDatabase() {
             )
         `);
 
-            // Create indexes
-            await pool.query('CREATE INDEX IF NOT EXISTS idx_warranties_user_id ON warranties(user_id)');
-            await pool.query('CREATE INDEX IF NOT EXISTS idx_warranties_expiry ON warranties(expiryDate)');
-            await pool.query('CREATE INDEX IF NOT EXISTS idx_verification_codes_email ON verification_codes(email)');
+        // Read and execute migration file AFTER base tables exist
+        const fs = require('fs');
+        const migrationPath = path.join(__dirname, 'migrations', '001_add_organizations.sql');
 
-            console.log('✅ Database initialization complete');
-        } catch (error) {
-            console.error('❌ Database initialization error:', error);
-            throw error;
+        if (fs.existsSync(migrationPath)) {
+            console.log('📋 Running organization migration...');
+            const migration = fs.readFileSync(migrationPath, 'utf8');
+            await pool.query(migration);
+            console.log('✅ Organization tables created/verified');
         }
+
+        // Create indexes
+        await pool.query('CREATE INDEX IF NOT EXISTS idx_warranties_user_id ON warranties(user_id)');
+        await pool.query('CREATE INDEX IF NOT EXISTS idx_warranties_expiry ON warranties(expiryDate)');
+        await pool.query('CREATE INDEX IF NOT EXISTS idx_verification_codes_email ON verification_codes(email)');
+
+        console.log('✅ Database initialization complete');
+    } catch (error) {
+        console.error('❌ Database initialization error:', error);
+        throw error;
     }
+}
 
 // Run initialization
 initializeDatabase().catch(console.error);
 
-    module.exports = db;
+module.exports = db;
