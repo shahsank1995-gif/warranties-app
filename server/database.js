@@ -22,7 +22,11 @@ const db = {
     // Helper to convert ? to $1, $2, etc.
     convertQuery: (sql) => {
         let i = 1;
-        return sql.replace(/\?/g, () => `$${i++}`);
+        const converted = sql.replace(/\?/g, () => `$${i++}`);
+        if (sql.includes('?')) {
+            console.log(`[DB] Converted query: "${sql}" -> "${converted}"`);
+        }
+        return converted;
     },
 
     // Query that returns all rows
