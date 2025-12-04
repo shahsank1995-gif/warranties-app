@@ -1,10 +1,7 @@
-
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import type { ExtractedData } from '../types';
 
-// Remove top-level initialization
-
-const model = "gemini-flash-latest";
+const model = "gemini-1.5-flash";
 
 function fileToGenerativePart(base64: string, mimeType: string) {
   return {
@@ -20,7 +17,7 @@ export async function extractReceiptData(
   mimeType: string
 ): Promise<ExtractedData> {
   const filePart = fileToGenerativePart(fileBase64, mimeType);
-  const documentType = mimeSchemaType.includes('pdf') ? 'PDF document' : 'image';
+  const documentType = mimeType.includes('pdf') ? 'PDF document' : 'image';
 
   const prompt = `
     You are an intelligent assistant for a warranty tracking application.
@@ -41,12 +38,11 @@ export async function extractReceiptData(
     if (!API_KEY) {
       throw new Error("VITE_GOOGLE_GENAI_API_KEY not set in environment variables. Please check .env.local");
     }
-   const ai = new GoogleGenerativeAI(API_KEY);
+    const ai = new GoogleGenerativeAI(API_KEY);
 
-    const response = await ai.models.generateContent({
-      model: model,
-      contents: { parts: [filePart, { text: prompt }] },
-      config: {
+    const genModel = ai.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      generationConfig: {
         responseMimeType: "application/json",
         responseSchema: {
           type: SchemaType.OBJECT,
@@ -62,30 +58,22 @@ export async function extractReceiptData(
       },
     });
 
-    const text = response.text.trim();
+    const response = await genModel.generateContent([filePart, { text: prompt }]);
+
+    const text = response.response.text().trim();
     const cleanedText = text.replace(/```json|```/g, '').trim();
 
     const data = JSON.parse(cleanedText);
 
-    // Basic validation
-    if (!data.productName || !data.warrantyPeriod) {
-      throw new Error("AI failed to extract required fields.");
-    }
-
-    // Validate date format
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (data.purchaseDate && !dateRegex.test(data.purchaseDate)) {
-      console.warn("AI returned invalid date format:", data.purchaseDate);
-      data.purchaseDate = ""; // Reset to empty if invalid
-    }
-
-    return data as ExtractedData;
-
+    return {
+      productName: data.productName || null,
+      purchaseDate: data.purchaseDate || null,
+      expiryDate: data.expiryDate || null,
+      warrantyPeriod: data.warrantyPeriod || 'Not specified',
+      retailer: data.retailer || null,
+    };
   } catch (error) {
-    console.error("Error calling Gemini API:", error);
-    if (error instanceof Error) {
-      throw new Error(`Failed to process document with AI: ${error.message}`);
-    }
-    throw new Error("An unknown error occurred while processing the document.");
+    console.error("Error extracting receipt data:", error);
+    throw new Error("Failed to analyze the receipt. Please try again.");
   }
 }
