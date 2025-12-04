@@ -39,7 +39,7 @@ export async function extractReceiptData(
 
     const ai = new GoogleGenerativeAI(API_KEY);
     const genModel = ai.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-pro",
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: {
