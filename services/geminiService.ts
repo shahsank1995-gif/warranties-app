@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { ExtractedData } from '../types';
 
 function fileToGenerativePart(base64: string, mimeType: string) {
@@ -18,17 +18,18 @@ export async function extractReceiptData(
   const documentType = mimeType.includes('pdf') ? 'PDF document' : 'image';
 
   const prompt = `
-    You are an intelligent assistant for a warranty tracking application.
-    Analyze the following ${documentType} which is either a receipt or a policy document.
-    Extract the requested information in a structured JSON format.
-    - productName: The main product or policy name. Be specific (e.g., "Bajaj Avenger 150 Insurance", "Sony WH-1000XM4 Headphones").
-    - purchaseDate: The date of purchase or policy start date in YYYY-MM-DD format.
-    - expiryDate: The explicit expiry date if mentioned (e.g., policy expiry). If present, use this over calculating from a warranty period. Format: YYYY-MM-DD.
-    - warrantyPeriod: The warranty or policy duration (e.g., "1 year", "90 days"). If not mentioned, use "Not specified".
-    - retailer: The name of the store, retailer, or policy issuer (e.g., "Best Buy", "ACKO General Insurance").
-
-    If any information is unclear or not present, use a null value for that field.
-    Your response must be only the JSON object, without any surrounding text or markdown formatting.
+    Analyze this ${documentType} which is either a receipt or a policy document.
+    Extract the following information and return ONLY a valid JSON object with these exact fields:
+    
+    {
+      "productName": "The main product or policy name",
+      "purchaseDate": "Purchase or start date in YYYY-MM-DD format",
+      "expiryDate": "Expiry date in YYYY-MM-DD format (or null if not mentioned)",
+      "warrantyPeriod": "Warranty duration like '1 year' or '90 days'",
+      "retailer": "Store or issuer name"
+    }
+    
+    Return ONLY the JSON object, no other text.
   `;
 
   try {
@@ -38,26 +39,11 @@ export async function extractReceiptData(
     }
 
     const ai = new GoogleGenerativeAI(API_KEY);
-    const genModel = ai.getGenerativeModel({ 
-      model: "gemini-pro",
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: SchemaType.OBJECT,
-          properties: {
-            productName: { type: SchemaType.STRING },
-            purchaseDate: { type: SchemaType.STRING },
-            expiryDate: { type: SchemaType.STRING, nullable: true },
-            warrantyPeriod: { type: SchemaType.STRING },
-            retailer: { type: SchemaType.STRING },
-          },
-          required: ["productName", "purchaseDate", "warrantyPeriod"],
-        },
-      },
-    });
+    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const response = await genModel.generateContent([filePart, { text: prompt }]);
-    const text = response.response.text().trim();
+    const result = await model.generateContent([prompt, filePart]);
+    const response = await result.response;
+    const text = response.text().trim();
     const cleanedText = text.replace(/```json|```/g, '').trim();
     const data = JSON.parse(cleanedText);
 
