@@ -18,34 +18,38 @@ export async function extractReceiptData(
   const documentType = mimeType.includes('pdf') ? 'PDF document' : 'image';
 
   const prompt = `
-    Analyze this ${documentType} which is either a receipt or a policy document.
-    Extract the following information and return ONLY a valid JSON object with these exact fields:
+    Analyze this ${documentType} (receipt or policy document).
+    Extract and return ONLY a JSON object with these fields:
     
     {
-      "productName": "The main product or policy name",
-      "purchaseDate": "Purchase or start date in YYYY-MM-DD format",
-      "expiryDate": "Expiry date in YYYY-MM-DD format (or null if not mentioned)",
-      "warrantyPeriod": "Warranty duration like '1 year' or '90 days'",
-      "retailer": "Store or issuer name"
+      "productName": "product or policy name",
+      "purchaseDate": "YYYY-MM-DD format",
+      "expiryDate": "YYYY-MM-DD or null",
+      "warrantyPeriod": "e.g. 1 year",
+      "retailer": "store name"
     }
-    
-    Return ONLY the JSON object, no other text.
   `;
 
   try {
     const API_KEY = import.meta.env.VITE_GOOGLE_GENAI_API_KEY;
     if (!API_KEY) {
-      throw new Error("VITE_GOOGLE_GENAI_API_KEY not set in environment variables");
+      throw new Error("API key not set");
     }
 
-    const ai = new GoogleGenerativeAI(API_KEY);
-    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const genAI = new GoogleGenerativeAI(API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
 
     const result = await model.generateContent([prompt, filePart]);
-    const response = await result.response;
-    const text = response.text().trim();
-    const cleanedText = text.replace(/```json|```/g, '').trim();
-    const data = JSON.parse(cleanedText);
+    const response = result.response;
+    const text = response.text();
+    
+    // Extract JSON from response
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error("No JSON found in response");
+    }
+    
+    const data = JSON.parse(jsonMatch[0]);
 
     return {
       productName: data.productName || null,
@@ -55,7 +59,7 @@ export async function extractReceiptData(
       retailer: data.retailer || null,
     };
   } catch (error) {
-    console.error("Error extracting receipt data:", error);
-    throw new Error("Failed to analyze receipt. Please try again.");
+    console.error("Error:", error);
+    throw new Error("Failed to analyze receipt");
   }
 }
