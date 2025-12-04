@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import type { ExtractedData } from '../types';
 
 // Remove top-level initialization
@@ -20,7 +20,7 @@ export async function extractReceiptData(
   mimeType: string
 ): Promise<ExtractedData> {
   const filePart = fileToGenerativePart(fileBase64, mimeType);
-  const documentType = mimeType.includes('pdf') ? 'PDF document' : 'image';
+  const documentType = mimeSchemaType.includes('pdf') ? 'PDF document' : 'image';
 
   const prompt = `
     You are an intelligent assistant for a warranty tracking application.
@@ -41,7 +41,7 @@ export async function extractReceiptData(
     if (!API_KEY) {
       throw new Error("VITE_GOOGLE_GENAI_API_KEY not set in environment variables. Please check .env.local");
     }
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
+   const ai = new GoogleGenerativeAI(API_KEY);
 
     const response = await ai.models.generateContent({
       model: model,
@@ -49,13 +49,13 @@ export async function extractReceiptData(
       config: {
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.OBJECT,
+          type: SchemaType.OBJECT,
           properties: {
-            productName: { type: Type.STRING, description: "The name of the primary product or policy." },
-            purchaseDate: { type: Type.STRING, description: "The purchase or start date in YYYY-MM-DD format." },
-            expiryDate: { type: Type.STRING, description: "The policy or warranty expiry date in YYYY-MM-DD format, if available.", nullable: true },
-            warrantyPeriod: { type: Type.STRING, description: "The duration of the warranty (e.g., '1 year')." },
-            retailer: { type: Type.STRING, description: "The name of the retailer or issuer." },
+            productName: { type: SchemaType.STRING, description: "The name of the primary product or policy." },
+            purchaseDate: { type: SchemaType.STRING, description: "The purchase or start date in YYYY-MM-DD format." },
+            expiryDate: { type: SchemaType.STRING, description: "The policy or warranty expiry date in YYYY-MM-DD format, if available.", nullable: true },
+            warrantyPeriod: { type: SchemaType.STRING, description: "The duration of the warranty (e.g., '1 year')." },
+            retailer: { type: SchemaType.STRING, description: "The name of the retailer or issuer." },
           },
           required: ["productName", "purchaseDate", "warrantyPeriod"],
         },
