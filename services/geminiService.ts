@@ -1,8 +1,5 @@
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import type { ExtractedData } from '../types';
-
-const model = "gemini-1.5-flash";
-
 function fileToGenerativePart(base64: string, mimeType: string) {
   return {
     inlineData: {
@@ -41,7 +38,7 @@ export async function extractReceiptData(
     const ai = new GoogleGenerativeAI(API_KEY);
 
     const genModel = ai.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model:"gemini-1.5-flash-latest"
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: {
