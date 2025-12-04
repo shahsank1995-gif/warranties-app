@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import type { ExtractedData } from '../types';
+
 function fileToGenerativePart(base64: string, mimeType: string) {
   return {
     inlineData: {
@@ -33,22 +34,22 @@ export async function extractReceiptData(
   try {
     const API_KEY = import.meta.env.VITE_GOOGLE_GENAI_API_KEY;
     if (!API_KEY) {
-      throw new Error("VITE_GOOGLE_GENAI_API_KEY not set in environment variables. Please check .env.local");
+      throw new Error("VITE_GOOGLE_GENAI_API_KEY not set in environment variables");
     }
-    const ai = new GoogleGenerativeAI(API_KEY);
 
+    const ai = new GoogleGenerativeAI(API_KEY);
     const genModel = ai.getGenerativeModel({ 
-      model:"gemini-1.5-flash-latest"
+      model: "gemini-1.5-flash-latest",
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: {
           type: SchemaType.OBJECT,
           properties: {
-            productName: { type: SchemaType.STRING, description: "The name of the primary product or policy." },
-            purchaseDate: { type: SchemaType.STRING, description: "The purchase or start date in YYYY-MM-DD format." },
-            expiryDate: { type: SchemaType.STRING, description: "The policy or warranty expiry date in YYYY-MM-DD format, if available.", nullable: true },
-            warrantyPeriod: { type: SchemaType.STRING, description: "The duration of the warranty (e.g., '1 year')." },
-            retailer: { type: SchemaType.STRING, description: "The name of the retailer or issuer." },
+            productName: { type: SchemaType.STRING },
+            purchaseDate: { type: SchemaType.STRING },
+            expiryDate: { type: SchemaType.STRING, nullable: true },
+            warrantyPeriod: { type: SchemaType.STRING },
+            retailer: { type: SchemaType.STRING },
           },
           required: ["productName", "purchaseDate", "warrantyPeriod"],
         },
@@ -56,10 +57,8 @@ export async function extractReceiptData(
     });
 
     const response = await genModel.generateContent([filePart, { text: prompt }]);
-
     const text = response.response.text().trim();
     const cleanedText = text.replace(/```json|```/g, '').trim();
-
     const data = JSON.parse(cleanedText);
 
     return {
@@ -71,6 +70,6 @@ export async function extractReceiptData(
     };
   } catch (error) {
     console.error("Error extracting receipt data:", error);
-    throw new Error("Failed to analyze the receipt. Please try again.");
+    throw new Error("Failed to analyze receipt. Please try again.");
   }
 }
